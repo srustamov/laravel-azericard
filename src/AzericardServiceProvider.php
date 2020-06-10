@@ -5,6 +5,10 @@ namespace Srustamov\Azericard;
 use Illuminate\Support\ServiceProvider;
 use Srustamov\Azericard\Azericard;
 
+/**
+ * Class AzericardServiceProvider
+ * @package Srustamov\Azericard
+ */
 class AzericardServiceProvider extends ServiceProvider
 {
     /**

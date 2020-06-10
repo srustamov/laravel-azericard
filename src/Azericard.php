@@ -4,11 +4,9 @@
 namespace Srustamov\Azericard;
 
 use Monolog\Logger;
-use Illuminate\Support\Collection;
 use Monolog\Handler\StreamHandler;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
-use Srustamov\Azericard\GenerateSign;
 use Srustamov\Azericard\Exceptions\AzericardException;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
 
@@ -24,7 +22,7 @@ class Azericard
 
     protected $config = [];
 
-    protected $logPath = null;
+    protected $logPath;
 
     protected $irKey = 'INTREF';
 
@@ -107,7 +105,11 @@ class Azericard
         unset($config);
     }
 
-    public function init(array $parameters)
+    /**
+     * @param array $parameters
+     * @return $this
+     */
+    public function init(array $parameters): self
     {
         $this->config = $this->config->merge($parameters);
 
@@ -166,7 +168,7 @@ class Azericard
      */
     public function formWithParams(array $parameters): self
     {
-        $this->form_custom_params = $params;
+        $this->form_custom_params = $parameters;
 
         return $this;
     }
@@ -180,16 +182,16 @@ class Azericard
 
         $params = $this->config;
 
-        $params->put('ORDER',str_pad($params->get('ORDER'), 6, '0', STR_PAD_LEFT));
+        $params->put('ORDER', str_pad($params->get('ORDER'), 6, '0', STR_PAD_LEFT));
 
         $params->put('P_SIGN', $this->getSignHash($this->generatePSignForPaymentForm($params)));
 
         return view('azericard::payment-form', array_merge(
-          [
-            'params' => $params->toArray(),
-          ],
-          $this->form_custom_params
-          ))->toHtml();
+            [
+                'params' => $params->toArray(),
+            ],
+            $this->form_custom_params
+        ))->toHtml();
     }
 
 
@@ -204,18 +206,18 @@ class Azericard
 
         $params->put('ORDER', str_pad($params['ORDER'], 6, '0', STR_PAD_LEFT));
 
-        $params->put('P_SIGN',$this->getSignHash($this->generatePSignForReversalForm($params)));
+        $params->put('P_SIGN', $this->getSignHash($this->generatePSignForReversalForm($params)));
 
         return view(
-          'azericard::reversal-form',
-          array_merge(
-            [
-                'params' => $params->toArray(),
-                'irKeyName' => $this->irKey,
-                'irValue' => $params->get($this->irKey)
-            ],
-            $this->form_custom_params
-         )
+            'azericard::reversal-form',
+            array_merge(
+                [
+                    'params' => $params->toArray(),
+                    'irKeyName' => $this->irKey,
+                    'irValue' => $params->get($this->irKey)
+                ],
+                $this->form_custom_params
+            )
         )->toHtml();
     }
 
@@ -254,7 +256,6 @@ class Azericard
     }
 
 
-
     /**
      * @return bool|null
      */
@@ -281,7 +282,7 @@ class Azericard
             'TIMESTAMP'
         ])
             ->put(
-                'P_SIGN',$this->getSignHash($this->generateSignForCheckout($parameters))
+                'P_SIGN', $this->getSignHash($this->generateSignForCheckout($parameters))
             )->toArray();
 
         $response = Http::withoutVerifying()
@@ -302,6 +303,7 @@ class Azericard
         return false;
 
     }
+
 
 
     protected function logCallback(): void
@@ -351,7 +353,11 @@ class Azericard
     }
 
 
-    protected function validateFormParameters($parameters)
+    /**
+     * @param $parameters
+     * @throws AzericardException
+     */
+    protected function validateFormParameters($parameters): void
     {
         foreach ($parameters as $key) {
             if (!$this->config->has($key)) {

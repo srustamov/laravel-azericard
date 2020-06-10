@@ -19,9 +19,6 @@ use Illuminate\Support\Facades\Facade;
 
 class Azericard extends Facade
 {
-    /**
-     * @return string
-     */
     protected static function getFacadeAccessor()
     {
         return \Srustamov\Azericard\Azericard::class;

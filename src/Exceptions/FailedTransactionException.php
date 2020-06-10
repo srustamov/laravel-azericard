@@ -2,8 +2,11 @@
 
 namespace Srustamov\Azericard\Exceptions;
 
-use Throwable;
 
+/**
+ * Class FailedTransactionException
+ * @package Srustamov\Azericard\Exceptions
+ */
 class FailedTransactionException extends AzericardException
 {
     protected $messages = [
@@ -91,6 +94,10 @@ class FailedTransactionException extends AzericardException
     ];
 
 
+    /**
+     * FailedTransactionException constructor.
+     * @param null $code
+     */
     public function __construct($code = null)
     {
         if (array_key_exists($code, $this->messages)) {
