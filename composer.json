@@ -1,0 +1,31 @@
+{
+  "name": "srustamov/laravel-azericard",
+  "description": "Azericard for laravel framework",
+  "type": "library",
+  "keywords": ["laravel", "azericard", "payment","payment-gateway"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Samir Rustamov",
+      "email": "rustemovv96@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2.5",
+    "illuminate/support": "^7.0",
+    "illuminate/config": "^7.0"
+  },
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "Srustamov\\Azericard\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Srustamov\\Azericard\\AzericardServiceProvider"
+      ]
+    }
+  }
+}
