@@ -18,16 +18,10 @@ class AzericardServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/azericard.php', 'azericard');
 
-        $this->loadViewsFrom(__DIR__ .'/../resources','azericard');
-
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__ . '/../config/azericard.php' => config_path('azericard.php'),
             ], 'config');
-
-            $this->publishes([
-                __DIR__ . '/../resources' => resource_path('views/vendor/azericard'),
-            ], 'views');
 
         }
     }
@@ -38,7 +32,7 @@ class AzericardServiceProvider extends ServiceProvider
     public function register():void
     {
         $this->app->bind(Azericard::class, static function () {
-            return new Azericard(config('azericard',[]));
+            return new Azericard('AZN');
         });
     }
 }

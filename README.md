@@ -18,15 +18,7 @@ composer require srustamov/laravel-azericard
 php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvider" --tag="config"
 ```
 
-### Override payment forms
-
-```bash
-php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvider" --tag="views"
-```
-
 ## Credits
-
-- [Elnur Akhundov](https://github.com/elnurxf)
 - [Samir Rustamov](https://github.com/srustamov)
 
 
@@ -34,132 +26,120 @@ php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvi
 
 ```php
 
-namespace App\Http\Controllers;
+// routes
+Route::get('/azericard/get-form-params',[\App\Http\Controllers\AzericardController::class,'getFormData']);
+Route::post('/azericard/callback',[\App\Http\Controllers\AzericardController::class,'callback']);
+Route::get('/azericard/result/{orderId}',[\App\Http\Controllers\AzericardController::class,'result']);
 
+
+//controller
+
+use Exception;
 use Illuminate\Http\Request;
-use Srustamov\Azericard\Facade\Azericard;
-use Srustamov\Azericard\Exceptions\AzericardException;
-use Srustamov\Azericard\Exceptions\FailedTransactionException;
-
+use Srustamov\Azericard\Azericard;
 
 class AzericardController extends Controller
 {
-    /**
-     * @return Illuminate\View\View|string
-     */
-    public function authorization()
-    {
-        try {
-            $form = Azericard::init([
-                'AMOUNT' => '3.70',
-                'CURRENCY' => 'AZN',
-                'ORDER' => '000001',
-                'DESC' => 'Payment for order #000001',
-                'TRTYPE' => '0', // 0 = AUTH, 1 = AUTH + CHECKOUT
-                'LANG' => 'en',
-            ])
-            // override template
-            // submit button label. in template <button>{{$button_label}}</button>
-            ->formWithParams(['button_label' => 'Authorization'])
-            ->paymentForm();
-        } catch (AzericardException $e) {
-            return $e->getMessage();
-        }
-
-        return view('authorization', compact('form'));
-    }
 
 
     /**
-     *  @return Illuminate\View\View|string
-     */
-    public function checkout()
-    {
-        try {
-            $form = Azericard::init([
-                'AMOUNT' => '3.70',
-                'CURRENCY' => 'AZN',
-                'ORDER' => '000001',
-                'DESC' => 'Payment for order #000001',
-                'TRTYPE' => '1', // 0 = AUTH, 1 = AUTH + CHECKOUT
-                'LANG' => 'en',
-            ])
-            ->paymentForm();
-        } catch (AzericardException $e) {
-            return $e->getMessage();
-        }
-
-        return view('checkout', compact('form'));
-    }
-
-
-    /**
-     *  @return Illuminate\View\View|string
-     */
-    public function reversal()
-    {
-        try {
-            $form = Azericard::init([
-               'AMOUNT'       => '5.00',
-               'CURRENCY'     => 'AZN',
-               'ORDER'        => '001000',
-               'RRN'          => '835376720012',
-               'INT_REF'      => '87052640AB22C9FA',
-               'TRTYPE'       => '22', // 22 = REVERSAL, 24 = CLEARANCE
-            ])
-            ->reversalForm();
-        } catch (AzericardException $e) {
-            return $e->getMessage();
-        }
-
-        return view('reversal', compact('form'));
-    }
-
-    /**
-     *  @return Illuminate\View\View|string
-     */
-    public function clearance()
-    {
-        try {
-            $form = Azericard::init([
-              'AMOUNT'       => '3.70',
-              'CURRENCY'     => 'AZN',
-              'ORDER'        => '000001',
-              'RRN'          => '',
-              'INT_REF'      => '',
-              'TRTYPE'       => '24', // 22 = REVERSAL, 24 = CLEARANCE
-            ])->reversalForm();
-        } catch (AzericardException $e) {
-            return $e->getMessage();
-        }
-
-        return view('clearance', compact('form'));
-    }
-
-    /**
+     * @param Azericard $azericard
      * @param Request $request
      * @return mixed
      */
-    public function callback(Request $request): string
+    public function getFormData(Azericard $azericard, Request $request)
+    {
+        $order  = $request->get('order','1');
+        $amount = $request->get('amount',10); // AZN
+
+        $formParams =  $azericard->order($order)
+            ->amount($amount)
+            ->setMerchantUrl("/azericard/result/{$order}")
+            //->debug($request->has('test'))
+            ->getFormParams();
+
+        //return $this->generateHtmlForm($formParams);
+
+        //return $formParams;
+    }
+
+
+    /**
+     * @param Azericard $azericard
+     * @param Request $request
+     */
+    public function callback(Azericard $azericard, Request $request)
     {
         try {
-          $success = Azericard::setCallBackParameters($request->all())
-              ->handleCallback()
-              ->completeCheckout();
-        } catch (FailedTransactionException $e) {
-          return 'failed:'.$e->getMessage();
-        } catch(AzericardException $e) {
-          return 'failed:'.$e->getMessage();
+
+            if ($azericard->checkout($request->all())) {
+
+                // payment success
+                // update order status or increment User balance
+            } else {
+                // payment fail
+            }
+
+        } catch (Exception $exception) {
+
+        }
+    }
+    
+    /**
+     * @param Azericard $azericard
+     */
+    public function refund(Azericard $azericard)
+    {
+        $data = [
+            'rrn' => 'bank rrn value',
+            'int_ref' => 'int_ref value',
+            'created_at' => 'payment create datetime. example 2020-01-01 10:00:11'
+        ];
+
+        $order  = 1;
+        $amount = 1;
+
+        if ($azericard->amount($amount)->order($order)->refund($data)) {
+            // amount refund successfully
+        } else {
+            // fail
+        }
+    }
+
+
+    /**
+     * @param $orderId
+     */
+    public function result($orderId)
+    {
+
+        /*
+        if (statement) {
+            return view('payment-success');
         }
 
-        if($success) {
-          // code ...
+        return view('payment-failed');
+
+       */
+
+    }
+
+
+    //example
+    private function generateHtmlForm($formParams): string
+    {
+        $html = '<form action="'.$formParams['action'].'" method="'.$formParams['method'].'">';
+
+        foreach ($formParams['inputs'] as $name => $value) {
+            $html .= '<input type="hidden" name="'.$name.'" value="'.$value.'" />';
         }
 
-        // failed code ...
+        $html .= '</form>';
+
+
+        return $html;
     }
 }
-
 
 ```
 
