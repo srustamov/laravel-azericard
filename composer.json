@@ -11,9 +11,9 @@
     }
   ],
   "require": {
-    "php": "^7.2.5",
-    "illuminate/support": "^7|^8",
-    "illuminate/config": "^7|^8",
+    "php": "^7|^8",
+    "illuminate/support": "^7|^8|^9",
+    "illuminate/config": "^7|^8|^9",
     "ext-curl": "*"
   },
   "minimum-stability": "dev",

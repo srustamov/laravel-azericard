@@ -123,7 +123,7 @@ class Azericard implements PaymentGatewayInterface
      */
     public function order($order): Azericard
     {
-        $this->order = str_pad($order,6,'0',STR_PAD_LEFT);;
+        $this->order = str_pad($order,6,'0',STR_PAD_LEFT);
 
         return $this;
     }
@@ -381,7 +381,7 @@ class Azericard implements PaymentGatewayInterface
     {
         $string = "";
 
-        for ($i = 0; $i < strlen($this->sign); $i += 2) {
+        for ($i = 0, $iMax = strlen($this->sign); $i < $iMax; $i += 2) {
             $string .= chr(hexdec(substr($this->sign, $i, 2)));
         }
 
