@@ -1,424 +1,229 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Srustamov\Azericard;
 
+use Illuminate\Support\Carbon;
+use Srustamov\Azericard\Contracts\ClientContract;
+use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
+use Srustamov\Azericard\Exceptions\FailedTransactionException;
+use Srustamov\Azericard\Exceptions\ValidationException;
 
-use Exception;
-use Srustamov\Azericard\Exceptions\AzericardException;
 
-
-class Azericard implements PaymentGatewayInterface
+class Azericard
 {
-    use AzericardLogger;
+    public const SUCCESS = '0';
 
-    public $debug;
+    public Options $options;
 
-    public $sign;
+    public ?string $order = null;
 
-    public $merchant_name;
+    protected array $appends = [];
 
-    public $merchant_url;
-
-    public $merchant_gmt;
-
-    public $tr_type = 0;
-
-    public $currency;
-
-    public $amount;
-
-    public $terminal;
-
-    public $psign;
-
-    public $timestamp;
-
-    public $nonce;
-
-    public $country;
-
-    public $lang;
-
-    public $irKey = 'INTREF';
-
-    public $description;
-
-    public $email;
-
-    public $urls = [
-        'test' => 'https://testmpi.3dsecure.az/cgi-bin/cgi_link',
-        'production' => 'https://mpi.3dsecure.az/cgi-bin/cgi_link',
-        'return' => ''
+    protected array $required_refund_keys = [
+        'rrn',
+        'int_ref',
+        'created_at'
     ];
 
-    public $order;
+    protected int|float $amount = 0;
 
-    protected $appends = [];
-
-
-
-    public function __construct($currency = 'AZN')
+    public function __construct(
+        private readonly ClientContract             $client,
+        private readonly SignatureGeneratorContract $signatureGenerator,
+    )
     {
-        $config = config('azericard');
+        $this->options = new Options(app('config')->get('azericard', []));
 
-        $this->sign           = $config['sign'];
-        $this->urls           = $config['urls'];
-        $this->urls['return'] = $config['urls']['return'];
-        $this->debug          = $config['debug'];
-        $this->irKey          = $this->debug ? 'INT_REF' : 'INTREF';
-        $this->email          = $config['email'];
-        $this->terminal       = $config['terminal'];
-        $this->description    = $config['description'];
-        $this->merchant_gmt   = $config['merchant_gmt'];
-        $this->merchant_name  = $config['merchant_name'];
-        $this->setLogPath($config['log_path']);
+        $this->client->setDebug($this->options->get('debug'));
 
-        $this->country   = $config['country'];
-        $this->lang      = $config['lang'];
-        $this->timestamp = gmdate("YmdHis");
-        $this->currency  = $currency;
-        $this->nonce     = substr(md5(mt_rand()), 0, 16);
-
+        $this->signatureGenerator->setSign($this->options->get('sign'));
     }
 
-
-
-
-    /**
-     * @param string $currency
-     * @return Azericard
-     */
-    public static function newInstance($currency = 'AZN') : Azericard
+    public function setDebug(bool $boolean): static
     {
-        return new self($currency);
-    }
+        $this->options->set('debug', $boolean);
 
-
-    /**
-     * @param bool $boolean
-     * @return $this
-     */
-    public function debug(bool $boolean)
-    {
-        $this->debug = $boolean;
+        $this->client->setDebug($boolean);
 
         return $this;
     }
 
+    public function setOptions(Options $options): static
+    {
+        $this->options = $options;
 
-    /**
-     * @param int|float $amount
-     * @return $this
-     */
-    public function amount($amount): Azericard
+        $this->client->setDebug($this->options->get('debug'));
+
+        if ($this->options->has('sign')) {
+            $this->signatureGenerator->setSign($this->options->get('sign'));
+        }
+
+        return $this;
+    }
+
+    public function setOption(string $key, $value): static
+    {
+        $this->options->set($key, $value);
+
+        if ($key === 'debug') {
+            $this->client->setDebug($value);
+        }
+
+        return $this;
+    }
+
+    public function setMerchantUrl(string $url): static
+    {
+        $this->options->set('merchant_url', $url);
+
+        return $this;
+    }
+
+    public function appendFormParams(array $data): static
+    {
+        $this->appends = array_merge($this->appends, $data);
+
+        return $this;
+    }
+
+    public function getFormParams(): array
+    {
+        if (!$this->getAmount() || !$this->getPaymentOrderId()) {
+            throw new ValidationException('Payment required amount and order');
+        }
+
+        return [
+            "action" => $this->client->getUrl(),
+            'method' => 'POST',
+            "inputs" => [
+                "AMOUNT"     => $this->getAmount(),
+                "ORDER"      => $this->getPaymentOrderId(),
+                "CURRENCY"   => $this->options->get('currency', 'AZN'),
+                "DESC"       => $this->options->get('description'),
+                "MERCH_NAME" => $this->options->get('merchant_name'),
+                "MERCH_URL"  => $this->options->get('merchant_url'),
+                "TERMINAL"   => $this->options->get('terminal'),
+                "EMAIL"      => $this->options->get('email'),
+                "TRTYPE"     => $this->options->get('tr_type'),
+                "COUNTRY"    => $this->options->get('country'),
+                "MERCH_GMT"  => $this->options->get('merchant_gmt'),
+                "TIMESTAMP"  => $this->options->get('timestamp'),
+                "NONCE"      => $this->options->get('nonce'),
+                "BACKREF"    => $this->options->get('back_ref_url'),
+                "LANG"       => $this->options->get('lang'),
+                "P_SIGN"     => $this->signatureGenerator->getPSign($this),
+            ],
+            ...$this->appends
+        ];
+    }
+
+    public function getAmount(): float|int
+    {
+        return $this->amount;
+    }
+
+    public function setAmount(float|int $amount): static
     {
         $this->amount = $amount;
 
         return $this;
     }
 
-    /**
-     * @param $order
-     * @return $this
-     */
-    public function order($order): Azericard
+    public function getPaymentOrderId(): string
     {
-        $this->order = str_pad($order,6,'0',STR_PAD_LEFT);
-
-        return $this;
+        return $this->order;
     }
 
-    /**
-     * @param string $url
-     * @return $this
-     */
-    public function setMerchantUrl(string $url): Azericard
+    public function refund(array $attributes): bool
     {
-        $this->merchant_url = $url;
-
-        return $this;
-    }
-
-
-    /**
-     * @param array $data
-     * @return $this
-     */
-    public function appendFormParams(array $data): Azericard
-    {
-        $this->appends = array_merge($this->appends,$data);
-
-        return $this;
-    }
-
-
-    /**
-     * @return array
-     */
-    public function getFormParams(): array
-    {
-        if (!$this->amount || !$this->order) {
-            throw new AzericardException('Payment required amount and order');
-        }
-
-        $this->generatePSign();
-
-        return [
-            "action" => $this->debug ? $this->urls['test'] : $this->urls['production'],
-            'method' => 'POST',
-            "inputs" => [
-                "AMOUNT" => $this->amount,
-                "CURRENCY" => $this->currency,
-                "ORDER" => $this->order,
-                "DESC" => $this->description,
-                "MERCH_NAME" => $this->merchant_name,
-                "MERCH_URL" => $this->merchant_url,
-                "TERMINAL" => $this->terminal,
-                "EMAIL" => $this->email,
-                "TRTYPE" => $this->tr_type,
-                "COUNTRY" => $this->country,
-                "MERCH_GMT" => $this->merchant_gmt,
-                "TIMESTAMP" => $this->timestamp,
-                "NONCE" => $this->nonce,
-                "BACKREF" => $this->urls['return'],
-                "LANG" => $this->lang,
-                "P_SIGN" => $this->psign,
-            ]
-        ] + $this->appends;
-    }
-
-
-
-    /**
-     * @param array $callbackParameters
-     * @return bool
-     */
-    public function refund(array $callbackParameters): bool
-    {
-        $requiredKeys = ['rrn','int_ref','created_at'];
-
-        foreach($requiredKeys as $key) {
-            abort_unless(
-                isset($callbackParameters[$key]),
-                400,
-                '"rrn","int_ref","created_at" values ​​are required in the sent array.'
-            );
-        }
-
-        try {
-
-            $params['AMOUNT']    = round(number_format($this->amount, 2));
-            $params['CURRENCY']  = 'AZN';
-            $params['ORDER']     = $this->order;
-            $params['RRN']       = $callbackParameters['rrn'];
-            $params['INT_REF']   = $callbackParameters['int_ref'];
-            $params['TERMINAL']  = $this->terminal;
-            $params['TRTYPE']    = '22';
-            $params['TIMESTAMP'] = $this->timestamp;
-            $params['NONCE']     = $this->nonce;
-
-            if($callbackParameters['created_at'] < date('Y-m-d H:i:s', strtotime('-1 day'))) {
-                $params['TRTYPE'] = '24';
+        foreach ($this->required_refund_keys as $key) {
+            if (empty($attributes[$key])) {
+                throw new ValidationException("Refund required {$key} key");
             }
-
-            $sign = strlen($params['ORDER'])   . $params['ORDER']
-                . strlen($params['AMOUNT'])    . $params['AMOUNT']
-                . strlen($params['CURRENCY'])  . $params['CURRENCY']
-                . strlen($params['RRN'])       . $params['RRN']
-                . strlen($params['INT_REF'])   . $params['INT_REF']
-                . strlen($params['TRTYPE'])    . $params['TRTYPE']
-                . strlen($params['TERMINAL'])  . $params['TERMINAL']
-                . strlen($params['TIMESTAMP']) . $params['TIMESTAMP']
-                . strlen($params['NONCE'])     . $params['NONCE'];
-
-
-            $params['P_SIGN'] = $this->generateSign($sign);
-
-            $curl = curl_init($this->debug ? $this->urls['test'] : $this->urls['production']);
-
-
-            curl_setopt_array($curl, [
-                CURLOPT_POSTREDIR => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HEADER => false,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_ENCODING => "",
-                CURLOPT_AUTOREFERER => true,
-                CURLOPT_CONNECTTIMEOUT => 120,
-                CURLOPT_TIMEOUT => 120,
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => http_build_query($params),
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-            ]);
-
-            $content = curl_exec($curl);
-
-            return $content === '0';
-
-        } catch (Exception $exception) {
-
-            $this->writeDebugLog('Refund-'.$exception->getMessage());
-
-            return false;
         }
+
+        $params['AMOUNT'] = (string)round($this->getAmount(), 2);
+        $params['CURRENCY'] = $this->options->get('currency', 'AZN');
+        $params['ORDER'] = $this->getPaymentOrderId();
+        $params['RRN'] = $attributes['rrn'];
+        $params['INT_REF'] = $attributes['int_ref'];
+        $params['TERMINAL'] = $this->options->get('terminal');
+        $params['TRTYPE'] = '22';
+        $params['TIMESTAMP'] = $this->options->get('timestamp');
+        $params['NONCE'] = $this->options->get('nonce');
+
+        if (Carbon::createFromTimeString($attributes['created_at'])->addDay()->isPast()) {
+            $params['TRTYPE'] = '24';
+        }
+
+        $params['P_SIGN'] = $this->signatureGenerator->generateForRefund($params);
+
+        $content = $this->client->refund($params);
+
+        if ($content === static::SUCCESS) {
+            return true;
+        }
+
+        throw new FailedTransactionException($content);
     }
 
 
-    /**
-     * @param $request
-     * @return bool|null
-     */
-    public function checkout($request)
+    public function checkout($request): bool
     {
         if ($request['ACTION'] != '0') {
             return false;
         }
 
-        $request['ORDER'] = str_pad($request['ORDER'], 6, "0", STR_PAD_LEFT);
+        $this->setOrder($request['ORDER']);
 
         $params = [];
 
-        $params["ORDER"] = $request['ORDER'];
+        $params["ORDER"] = $this->getPaymentOrderId();
         $params["AMOUNT"] = $request["AMOUNT"];
         $params["CURRENCY"] = $request['CURRENCY'];
         $params["RRN"] = $request["RRN"];
         $params["INT_REF"] = $request["INT_REF"];
         $params["TERMINAL"] = $request["TERMINAL"];
         $params["TRTYPE"] = "21";
-        $params["TIMESTAMP"] = $this->timestamp;
-        $params["NONCE"] = $this->nonce;
-        $params['P_SIGN'] = $this->generateSignForCheckout($request);
+        $params["TIMESTAMP"] = $this->options->get('timestamp');
+        $params["NONCE"] = $this->options->get('nonce');
+        $params['P_SIGN'] = $this->signatureGenerator->getSignForCheckout($this, $request);
 
+        $content = $this->client->checkout($params);
 
-        try {
-            $curl = curl_init($this->debug ? $this->urls['test'] : $this->urls['production']);
-
-            curl_setopt_array($curl, [
-                CURLOPT_POSTREDIR => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HEADER => false,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_ENCODING => "",
-                CURLOPT_AUTOREFERER => true,
-                CURLOPT_CONNECTTIMEOUT => 120,
-                CURLOPT_TIMEOUT => 120,
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => http_build_query($params),
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false
-            ]);
-
-            $content = curl_exec($curl);
-
-            curl_close($curl);
-
-            return $content === '0';
-
-        } catch (Exception $exception) {
-
-            $this->writeDebugLog($exception->getMessage(), [
-                'line' => $exception->getLine(),
-                'file' => $exception->getFile(),
-            ]);
-
-            return false;
+        if ($content === static::SUCCESS) {
+            return true;
         }
 
+        throw new FailedTransactionException($content);
     }
 
-
-    /**
-     * @return $this
-     */
-    protected function generatePSign(): Azericard
+    public function setOrder(string $order): static
     {
-        $pSign =
-            strlen((string)$this->amount) . $this->amount
-            . strlen((string)$this->currency) . $this->currency
-            . strlen((string)$this->order) . $this->order
-            . strlen((string)$this->description) . $this->description
-            . strlen((string)$this->merchant_name) . $this->merchant_name
-            . strlen((string)$this->merchant_url) . $this->merchant_url
-            . strlen((string)$this->terminal) . $this->terminal
-            . strlen((string)$this->email) . $this->email
-            . strlen((string)$this->tr_type) . $this->tr_type
-            . strlen((string)$this->country) . $this->country
-            . strlen((string)$this->merchant_gmt) . $this->merchant_gmt
-            . strlen((string)$this->timestamp) . $this->timestamp
-            . strlen((string)$this->nonce) . $this->nonce
-            . strlen((string)$this->urls['return']) . $this->urls['return'];
-
-        $this->psign = $this->generateSign($pSign);
+        $this->order = str_pad($order, 6, '0', STR_PAD_LEFT);
 
         return $this;
     }
 
-
-    protected function generateSignForCheckout($request): string
+    public function getClient(): Client
     {
-        $string = "" . strlen($request["ORDER"]) . $request["ORDER"] .
-            strlen($request["AMOUNT"]) . $request["AMOUNT"] .
-            strlen($request['CURRENCY']) . $request['CURRENCY'] .
-            strlen($request["RRN"]) . $request["RRN"] .
-            strlen($request["INT_REF"]) . $request["INT_REF"] .
-            strlen("21") . "21" .
-            strlen($request["TERMINAL"]) . $request["TERMINAL"] .
-            strlen($this->timestamp) . $this->timestamp .
-            strlen($this->nonce) . $this->nonce;
-
-        return $this->generateSign($string);
+        return $this->client;
     }
 
-
-    /**
-     * @param $data
-     * @return string
-     */
-    protected function generateSign($data): string
+    public function isDebug(): bool
     {
-        $string = "";
-
-        for ($i = 0, $iMax = strlen($this->sign); $i < $iMax; $i += 2) {
-            $string .= chr(hexdec(substr($this->sign, $i, 2)));
-        }
-
-        return hash_hmac('sha1', $data, $string);
+        return $this->options->get('debug', false);
     }
 
-
-
-    /**
-     * @return string
-     */
-    public function getPaymentOrderId(): string
+    public function __get(string $name)
     {
-        return $this->order;
+        return $this->options->get($name);
     }
 
-    /**
-     * @return double
-     */
-    public function getPaymentAmount()
+    public function __set(string $name, $value)
     {
-        return $this->amount;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPaymentDescription()
-    {
-        return $this->description;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCustomerEmail()
-    {
-        return $this->email;
+        $this->options->set($name, $value);
     }
 }

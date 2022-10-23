@@ -1,10 +1,10 @@
-# AzeriCard Payment Package for Laravel
+# Azericard Payment Package for Laravel
 
 
 ## Requirements
 
-- Laravel **^7.0|8|9**
-- PHP **7|8**
+- Laravel **^8|^9**
+- PHP **^8.1**
 
 ## Installation
 
@@ -12,6 +12,12 @@ You can install the package via composer:
 
 ```bash
 composer require srustamov/laravel-azericard
+```
+
+## For Laravel < 8 and PHP < 8
+
+```bash
+composer require srustamov/laravel-azericard:^1.0.1
 ```
 
 ```bash
@@ -22,14 +28,22 @@ php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvi
 - [Samir Rustamov](https://github.com/srustamov)
 
 
-## Examples
+## Example
 
 ```php
 
+
+
+
+```
+
+```php
 // routes
-Route::get('/azericard/get-form-params',[\App\Http\Controllers\AzericardController::class,'getFormData']);
-Route::post('/azericard/callback',[\App\Http\Controllers\AzericardController::class,'callback']);
-Route::get('/azericard/result/{orderId}',[\App\Http\Controllers\AzericardController::class,'result']);
+Route::prefix('azericard')->group(function () {
+    Route::get('/get-form-params',[\App\Http\Controllers\AzericardController::class,'getFormData']);
+    Route::post('/callback',[\App\Http\Controllers\AzericardController::class,'callback']);
+    Route::get('/result/{orderId}',[\App\Http\Controllers\AzericardController::class,'result']);
+});
 
 
 //controller
@@ -37,10 +51,11 @@ Route::get('/azericard/result/{orderId}',[\App\Http\Controllers\AzericardControl
 use Exception;
 use Illuminate\Http\Request;
 use Srustamov\Azericard\Azericard;
+use Srustamov\Azericard\Exceptions\FailedTransactionException;
+use Srustamov\Azericard\Exceptions\AzericardException;
 
 class AzericardController extends Controller
 {
-
 
     /**
      * @param Azericard $azericard
@@ -52,14 +67,17 @@ class AzericardController extends Controller
         $order  = $request->get('order','1');
         $amount = $request->get('amount',10); // AZN
 
-        $formParams =  $azericard->order($order)
-            ->amount($amount)
+        $formParams =  $azericard->setOrder($order)
+            ->setAmount($amount)
             ->setMerchantUrl("/azericard/result/{$order}")
             //->debug($request->has('test'))
             ->getFormParams();
 
+
+        //for ui
         //return $this->generateHtmlForm($formParams);
 
+        //for api
         //return $formParams;
     }
 
@@ -80,8 +98,15 @@ class AzericardController extends Controller
                 // payment fail
             }
 
-        } catch (Exception $exception) {
-
+        } 
+        catch (FailedTransactionException $e) {
+            // payment fail
+        } 
+        catch (AzericardException $e) {
+            // payment fail
+        } 
+        catch (Exception $e) {
+            // payment fail
         }
     }
     
@@ -90,19 +115,32 @@ class AzericardController extends Controller
      */
     public function refund(Azericard $azericard)
     {
-        $data = [
-            'rrn' => 'bank rrn value',
-            'int_ref' => 'int_ref value',
-            'created_at' => 'payment create datetime. example 2020-01-01 10:00:11'
-        ];
-
-        $order  = 1;
-        $amount = 1;
-
-        if ($azericard->amount($amount)->order($order)->refund($data)) {
-            // amount refund successfully
-        } else {
-            // fail
+        try
+        {
+            $data = [
+                'rrn' => 'bank rrn value',
+                'int_ref' => 'int_ref value',
+                'created_at' => 'payment create datetime. example 2020-01-01 10:00:11'
+            ];
+            }
+    
+            $order  = 1;
+            $amount = 1;
+    
+            if ($azericard->setAmount($amount)->setOrder($order)->refund($data)) {
+                // amount refund successfully
+            } else {
+                // fail
+            }
+        }
+        catch (FailedTransactionException $e) {
+            // payment fail
+        } 
+        catch (AzericardException $e) {
+            // payment fail
+        } 
+        catch (Exception $e) {
+            // payment fail
         }
     }
 

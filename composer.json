@@ -1,32 +1,53 @@
 {
-  "name": "srustamov/laravel-azericard",
-  "description": "Azericard for laravel framework",
-  "type": "library",
-  "keywords": ["laravel", "azericard", "payment","payment-gateway"],
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Samir Rustamov",
-      "email": "rustemovv96@gmail.com"
+    "name": "srustamov/laravel-azericard",
+    "description": "Azericard for laravel framework",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "azericard",
+        "payment",
+        "payment-gateway"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Samir Rustamov",
+            "email": "rustemovv96@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "laravel/framework": "^8|^9",
+        "ext-curl": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "orchestra/testbench": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Srustamov\\Azericard\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Srustamov\\Azericard\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Srustamov\\Azericard\\AzericardServiceProvider"
+            ]
+        }
     }
-  ],
-  "require": {
-    "php": "^7|^8",
-    "illuminate/support": "^7|^8|^9",
-    "illuminate/config": "^7|^8|^9",
-    "ext-curl": "*"
-  },
-  "minimum-stability": "dev",
-  "autoload": {
-    "psr-4": {
-      "Srustamov\\Azericard\\": "src/"
-    }
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Srustamov\\Azericard\\AzericardServiceProvider"
-      ]
-    }
-  }
 }

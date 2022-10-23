@@ -9,7 +9,7 @@ namespace Srustamov\Azericard\Exceptions;
  */
 class FailedTransactionException extends AzericardException
 {
-    protected $messages = [
+    protected array $messages = [
         '-30' => 'System error',
         '-21' => 'Duplicate transaction',
         '-20' => 'Expired transaction',
@@ -36,7 +36,7 @@ class FailedTransactionException extends AzericardException
         '04'  => 'Your card is restricted',
         '05'  => 'Transaction declined',
         '07'  => 'Your card is disabled',
-        '0'   => 'Approved',
+        //'0'   => 'Approved',
         '1'   => 'Call your bank',
         '2'   => 'Call your bank',
         '3'   => 'Invalid merchant',
