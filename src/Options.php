@@ -13,7 +13,7 @@ class Options implements ArrayAccess
     public function __construct(public array $attributes = [])
     {
         $this->set('timestamp', gmdate("YmdHis"));
-        $this->set('currency', $config['currency'] ?? "AZN");
+        $this->set('currency', $attributes['currency'] ?? "AZN");
         $this->set('nonce', substr(md5((string)mt_rand()), 0, 16));
     }
 
