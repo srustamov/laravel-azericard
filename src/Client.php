@@ -36,7 +36,7 @@ class Client implements ClientContract
     public function refund($params): bool|string
     {
         if (static::$fake) {
-            return "0";
+            return Azericard::SUCCESS;
         }
 
         $curl = curl_init($this->getUrl());
@@ -77,7 +77,7 @@ class Client implements ClientContract
     public function checkout($params): bool|string
     {
         if (static::$fake) {
-            return "0";
+            return Azericard::SUCCESS;
         }
 
         $curl = curl_init($this->getUrl());
