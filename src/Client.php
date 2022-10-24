@@ -14,6 +14,13 @@ class Client implements ClientContract
 
     protected bool $debug = false;
 
+    protected static bool $fake;
+
+    public static function fake()
+    {
+        static::$fake = true;
+    }
+
     public function getUrl() : string
     {
         return $this->debug ? $this->urls['test'] : $this->urls['production'];
@@ -28,7 +35,7 @@ class Client implements ClientContract
 
     public function refund($params): bool|string
     {
-        if (app()->runningUnitTests()) {
+        if (static::$fake) {
             return "0";
         }
 
@@ -69,7 +76,7 @@ class Client implements ClientContract
 
     public function checkout($params): bool|string
     {
-        if (app()->runningUnitTests()) {
+        if (static::$fake) {
             return "0";
         }
 

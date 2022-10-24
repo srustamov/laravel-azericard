@@ -3,12 +3,15 @@
 namespace Srustamov\Azericard\Tests;
 
 
+use Srustamov\Azericard\Client;
 use Srustamov\Azericard\Facade\Azericard;
 
 class CheckoutTest extends TestCase
 {
     public function test_checkout()
     {
+        Client::fake();
+
         $checkout = Azericard::checkout([
             "ACTION"   => "0",
             "ORDER"    => "123456",
