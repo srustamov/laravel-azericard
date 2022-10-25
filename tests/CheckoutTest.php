@@ -17,7 +17,7 @@ class CheckoutTest extends TestCase
             Options::ACTION   => \Srustamov\Azericard\Azericard::SUCCESS,
             Options::ORDER    => "123456",
             Options::AMOUNT   => 100,
-            Options::CURRENCY => "944",
+            Options::CURRENCY => "AZN",
             Options::INT_REF  => "Test",
             Options::RRN      => "Test",
             Options::TERMINAL => 23546576587,
