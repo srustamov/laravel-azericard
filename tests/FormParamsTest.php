@@ -3,6 +3,7 @@
 namespace Srustamov\Azericard\Tests;
 
 use Srustamov\Azericard\Facade\Azericard;
+use Srustamov\Azericard\Options;
 
 class FormParamsTest extends TestCase
 {
@@ -12,8 +13,8 @@ class FormParamsTest extends TestCase
 
         $params = $azericard->getFormParams();
 
-        $this->assertEquals('123456', $params['inputs']['ORDER']);
-        $this->assertEquals(100, $params['inputs']['AMOUNT']);
+        $this->assertEquals('123456', $params['inputs'][Options::ORDER]);
+        $this->assertEquals(100, $params['inputs'][Options::AMOUNT]);
         $this->assertEquals($azericard->getClient()->getUrl(), $params['action']);
     }
 }

@@ -20,7 +20,6 @@ class AzericardServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../config/azericard.php' => config_path('azericard.php'),
             ], 'config');
-
         }
     }
 

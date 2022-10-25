@@ -24,26 +24,21 @@ class Azericard
     protected array $required_refund_keys = [
         'rrn',
         'int_ref',
-        'created_at'
+        'created_at',
     ];
 
     protected int|float $amount = 0;
 
     public function __construct(
-        private readonly ClientContract             $client,
+        private readonly ClientContract $client,
         private readonly SignatureGeneratorContract $signatureGenerator,
-    )
-    {
-        $this->options = new Options(app('config')->get('azericard', []));
-
-        $this->client->setDebug($this->options->get('debug'));
-
-        $this->signatureGenerator->setSign($this->options->get('sign'));
+    ) {
+        $this->setOptions(new Options(app('config')->get('azericard', [])));
     }
 
     public function setDebug(bool $boolean): static
     {
-        $this->options->set('debug', $boolean);
+        $this->options->set(Options::DEBUG, $boolean);
 
         $this->client->setDebug($boolean);
 
@@ -54,10 +49,10 @@ class Azericard
     {
         $this->options = $options;
 
-        $this->client->setDebug($this->options->get('debug'));
+        $this->client->setDebug($this->options->get(Options::DEBUG));
 
-        if ($this->options->has('sign')) {
-            $this->signatureGenerator->setSign($this->options->get('sign'));
+        if ($this->options->has(Options::SIGNATURE_KEY_NAME)) {
+            $this->signatureGenerator->setSign($this->options->get(Options::SIGNATURE_KEY_NAME));
         }
 
         return $this;
@@ -67,8 +62,12 @@ class Azericard
     {
         $this->options->set($key, $value);
 
-        if ($key === 'debug') {
+        if ($key === Options::DEBUG) {
             $this->client->setDebug($value);
+        }
+
+        if ($key === Options::SIGNATURE_KEY_NAME) {
+            $this->signatureGenerator->setSign($value);
         }
 
         return $this;
@@ -98,24 +97,24 @@ class Azericard
             "action" => $this->client->getUrl(),
             'method' => 'POST',
             "inputs" => [
-                "AMOUNT"     => $this->getAmount(),
-                "ORDER"      => $this->getPaymentOrderId(),
-                "CURRENCY"   => $this->options->get('currency', 'AZN'),
-                "DESC"       => $this->options->get('description'),
-                "MERCH_NAME" => $this->options->get('merchant_name'),
-                "MERCH_URL"  => $this->options->get('merchant_url'),
-                "TERMINAL"   => $this->options->get('terminal'),
-                "EMAIL"      => $this->options->get('email'),
-                "TRTYPE"     => $this->options->get('tr_type'),
-                "COUNTRY"    => $this->options->get('country'),
-                "MERCH_GMT"  => $this->options->get('merchant_gmt'),
-                "TIMESTAMP"  => $this->options->get('timestamp'),
-                "NONCE"      => $this->options->get('nonce'),
-                "BACKREF"    => $this->options->get('back_ref_url'),
-                "LANG"       => $this->options->get('lang'),
-                "P_SIGN"     => $this->signatureGenerator->getPSign($this),
+                Options::AMOUNT     => $this->getAmount(),
+                Options::ORDER      => $this->getPaymentOrderId(),
+                Options::CURRENCY   => $this->options->get('currency', 'AZN'),
+                Options::DESC       => $this->options->get('description'),
+                Options::MERCH_NAME => $this->options->get('merchant_name'),
+                Options::MERCH_URL  => $this->options->get('merchant_url'),
+                Options::TERMINAL   => $this->options->get('terminal'),
+                Options::EMAIL      => $this->options->get('email'),
+                Options::TRTYPE     => $this->options->get('tr_type'),
+                Options::COUNTRY    => $this->options->get('country'),
+                Options::MERCH_GMT  => $this->options->get('merchant_gmt'),
+                Options::TIMESTAMP  => $this->options->get('timestamp'),
+                Options::NONCE      => $this->options->get('nonce'),
+                Options::BACKREF    => $this->options->get('back_ref_url'),
+                Options::LANG       => $this->options->get('lang'),
+                Options::P_SIGN     => $this->signatureGenerator->getPSign($this),
             ],
-            ...$this->appends
+            ...$this->appends,
         ];
     }
 
@@ -140,25 +139,25 @@ class Azericard
     {
         foreach ($this->required_refund_keys as $key) {
             if (empty($attributes[$key])) {
-                throw new ValidationException("Refund required {$key} key");
+                throw new ValidationException("Refund required $key key");
             }
         }
 
-        $params['AMOUNT'] = (string)round($this->getAmount(), 2);
-        $params['CURRENCY'] = $this->options->get('currency', 'AZN');
-        $params['ORDER'] = $this->getPaymentOrderId();
-        $params['RRN'] = $attributes['rrn'];
-        $params['INT_REF'] = $attributes['int_ref'];
-        $params['TERMINAL'] = $this->options->get('terminal');
-        $params['TRTYPE'] = '22';
-        $params['TIMESTAMP'] = $this->options->get('timestamp');
-        $params['NONCE'] = $this->options->get('nonce');
+        $params[Options::AMOUNT] = (string)round($this->getAmount(), 2);
+        $params[Options::CURRENCY] = $this->options->get('currency', 'AZN');
+        $params[Options::ORDER] = $this->getPaymentOrderId();
+        $params[Options::RRN] = $attributes['rrn'];
+        $params[Options::INT_REF] = $attributes['int_ref'];
+        $params[Options::TERMINAL] = $this->options->get('terminal');
+        $params[Options::TRTYPE] = '22';
+        $params[Options::TIMESTAMP] = $this->options->get('timestamp');
+        $params[Options::NONCE] = $this->options->get('nonce');
 
         if (Carbon::createFromTimeString($attributes['created_at'])->addDay()->isPast()) {
-            $params['TRTYPE'] = '24';
+            $params[Options::TRTYPE] = '24';
         }
 
-        $params['P_SIGN'] = $this->signatureGenerator->generateForRefund($params);
+        $params[Options::P_SIGN] = $this->signatureGenerator->generateForRefund($params);
 
         $content = $this->client->refund($params);
 
@@ -166,30 +165,30 @@ class Azericard
             return true;
         }
 
-        throw new FailedTransactionException($content);
+        throw new FailedTransactionException($content,$params);
     }
 
 
     public function checkout($request): bool
     {
-        if ($request['ACTION'] != '0') {
-            return false;
+        if ($request[Options::ACTION] != static::SUCCESS) {
+            throw new FailedTransactionException($request[Options::ACTION],$request);
         }
 
-        $this->setOrder($request['ORDER']);
+        $this->setOrder($request[Options::ORDER]);
 
         $params = [];
 
-        $params["ORDER"] = $this->getPaymentOrderId();
-        $params["AMOUNT"] = $request["AMOUNT"];
-        $params["CURRENCY"] = $request['CURRENCY'];
-        $params["RRN"] = $request["RRN"];
-        $params["INT_REF"] = $request["INT_REF"];
-        $params["TERMINAL"] = $request["TERMINAL"];
-        $params["TRTYPE"] = "21";
-        $params["TIMESTAMP"] = $this->options->get('timestamp');
-        $params["NONCE"] = $this->options->get('nonce');
-        $params['P_SIGN'] = $this->signatureGenerator->getSignForCheckout($this, $request);
+        $params[Options::ORDER] = $this->getPaymentOrderId();
+        $params[Options::AMOUNT] = $request[Options::AMOUNT];
+        $params[Options::CURRENCY] = $request[Options::CURRENCY];
+        $params[Options::RRN] = $request[Options::RRN];
+        $params[Options::INT_REF] = $request[Options::INT_REF];
+        $params[Options::TERMINAL] = $request[Options::TERMINAL];
+        $params[Options::TRTYPE] = "21";
+        $params[Options::TIMESTAMP] = $this->options->get('timestamp');
+        $params[Options::NONCE] = $this->options->get('nonce');
+        $params[Options::P_SIGN] = $this->signatureGenerator->getSignForCheckout($this, $request);
 
         $content = $this->client->checkout($params);
 
@@ -197,7 +196,7 @@ class Azericard
             return true;
         }
 
-        throw new FailedTransactionException($content);
+        throw new FailedTransactionException($content,$request);
     }
 
     public function setOrder(string $order): static
@@ -207,17 +206,17 @@ class Azericard
         return $this;
     }
 
-    public function getClient(): Client
+    public function getClient(): ClientContract
     {
         return $this->client;
     }
 
     public function isDebug(): bool
     {
-        return $this->options->get('debug', false);
+        return $this->options->get(Options::DEBUG, false);
     }
 
-    public function __get(string $name)
+    public function __get(string $name): mixed
     {
         return $this->options->get($name);
     }

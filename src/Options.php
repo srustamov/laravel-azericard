@@ -10,6 +10,29 @@ class Options implements ArrayAccess
 {
     use Conditionable;
 
+    public const DEBUG = 'debug';
+    public const SIGNATURE_KEY_NAME = 'sign';
+
+    public const ACTION = "ACTION";
+    public const AMOUNT = "AMOUNT";
+    public const ORDER = "ORDER";
+    public const CURRENCY = "CURRENCY";
+    public const DESC = "DESC";
+    public const MERCH_NAME = "MERCH_NAME";
+    public const MERCH_URL = "MERCH_URL";
+    public const TERMINAL = "TERMINAL";
+    public const EMAIL = "EMAIL";
+    public const TRTYPE = "TRTYPE";
+    public const COUNTRY = "COUNTRY";
+    public const MERCH_GMT = "MERCH_GMT";
+    public const TIMESTAMP = "TIMESTAMP";
+    public const NONCE = "NONCE";
+    public const BACKREF = "BACKREF";
+    public const LANG = "LANG";
+    public const RRN = "RRN";
+    public const INT_REF = "INTREF";
+    public const P_SIGN = "P_SIGN";
+
     public function __construct(public array $attributes = [])
     {
         $this->set('timestamp', gmdate("YmdHis"));

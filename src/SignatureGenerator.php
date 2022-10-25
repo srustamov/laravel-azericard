@@ -6,9 +6,10 @@ use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 
 class SignatureGenerator implements SignatureGeneratorContract
 {
-    public function __construct(protected string $sign = '')
-    {
-    }
+
+    public const ALGORITHM = 'sha1';
+
+    public function __construct(protected string $sign = '') {}
 
     public function setSign(string $sign): static
     {
@@ -21,18 +22,25 @@ class SignatureGenerator implements SignatureGeneratorContract
     {
         $string = strlen((string)$azericard->getAmount()) . $azericard->getAmount()
             . strlen((string)$azericard->options->get('currency')) . $azericard->options->get('currency')
-            . strlen($azericard->getPaymentOrderId()) . $azericard->getPaymentOrderId()
-            . strlen((string)$azericard->options->get('description')) . $azericard->options->get('description')
-            . strlen((string)$azericard->options->get('merchant_name')) . $azericard->options->get('merchant_name')
-            . strlen((string)$azericard->options->get('merchant_url')) . $azericard->options->get('merchant_url')
-            . strlen((string)$azericard->options->get('terminal')) . $azericard->options->get('terminal')
-            . strlen((string)$azericard->options->get('email')) . $azericard->options->get('email')
-            . strlen((string)$azericard->options->get('tr_type')) . $azericard->options->get('tr_type')
-            . strlen((string)$azericard->options->get('country')) . $azericard->options->get('country')
-            . strlen((string)$azericard->options->get('merchant_gmt')) . $azericard->options->get('merchant_gmt')
-            . strlen((string)$azericard->options->get('timestamp')) . $azericard->options->get('timestamp')
-            . strlen((string)$azericard->options->get('nonce')) . $azericard->options->get('nonce')
-            . strlen((string)$azericard->options->get('back_ref_url')) . $azericard->options->get('back_ref_url');
+            . strlen($azericard->getPaymentOrderId()) . $azericard->getPaymentOrderId();
+
+        $keys = [
+            'description',
+            'merchant_name',
+            'merchant_url',
+            'terminal',
+            'email',
+            'tr_type',
+            'country',
+            'merchant_gmt',
+            'timestamp',
+            'nonce',
+            'back_ref_url',
+        ];
+
+        foreach ($keys as $key) {
+            $string .= strlen((string)$azericard->options->get($key)) . $azericard->options->get($key);
+        }
 
         return $this->generateSign($string);
     }
@@ -45,18 +53,18 @@ class SignatureGenerator implements SignatureGeneratorContract
             $string .= chr(hexdec(substr($this->sign, $i, 2)));
         }
 
-        return hash_hmac('sha1', $data, $string);
+        return hash_hmac(static::ALGORITHM, $data, $string);
     }
 
     public function getSignForCheckout(Azericard $azericard, $request): string
     {
-        $string = "" . strlen($request["ORDER"]) . $request["ORDER"] .
-            strlen($request["AMOUNT"]) . $request["AMOUNT"] .
-            strlen($request['CURRENCY']) . $request['CURRENCY'] .
-            strlen($request["RRN"]) . $request["RRN"] .
-            strlen($request["INT_REF"]) . $request["INT_REF"] .
+        $string = "" . strlen($request[Options::ORDER]) . $request[Options::ORDER] .
+            strlen($request[Options::AMOUNT]) . $request[Options::AMOUNT] .
+            strlen($request[Options::CURRENCY]) . $request[Options::CURRENCY] .
+            strlen($request[Options::RRN]) . $request[Options::RRN] .
+            strlen($request[Options::INT_REF]) . $request[Options::INT_REF] .
             strlen("21") . "21" .
-            strlen($request["TERMINAL"]) . $request["TERMINAL"] .
+            strlen($request[Options::TERMINAL]) . $request[Options::TERMINAL] .
             strlen($azericard->options->get('timestamp')) . $azericard->options->get('timestamp') .
             strlen($azericard->options->get('nonce')) . $azericard->options->get('nonce');
 
@@ -65,17 +73,22 @@ class SignatureGenerator implements SignatureGeneratorContract
 
     public function generateForRefund(array $params): string
     {
-        $sign = strlen($params['ORDER']) . $params['ORDER']
-            . strlen($params['AMOUNT']) . $params['AMOUNT']
-            . strlen($params['CURRENCY']) . $params['CURRENCY']
-            . strlen($params['RRN']) . $params['RRN']
-            . strlen($params['INT_REF']) . $params['INT_REF']
-            . strlen($params['TRTYPE']) . $params['TRTYPE']
-            . strlen($params['TERMINAL']) . $params['TERMINAL']
-            . strlen($params['TIMESTAMP']) . $params['TIMESTAMP']
-            . strlen($params['NONCE']) . $params['NONCE'];
+        $keys = [
+            Options::ORDER,
+            Options::AMOUNT,
+            Options::CURRENCY,
+            Options::RRN,
+            Options::INT_REF,
+            Options::TRTYPE,
+            Options::TERMINAL,
+            Options::TIMESTAMP,
+            Options::NONCE,
+        ];
 
-
-        return $this->generateSign($sign);
+        $string = "";
+        foreach ($keys as $key) {
+            $string .= strlen($params[$key]) . $params[$key];
+        }
+        return $this->generateSign($string);
     }
 }

@@ -5,6 +5,7 @@ namespace Srustamov\Azericard\Tests;
 
 use Srustamov\Azericard\Client;
 use Srustamov\Azericard\Facade\Azericard;
+use Srustamov\Azericard\Options;
 
 class CheckoutTest extends TestCase
 {
@@ -13,13 +14,13 @@ class CheckoutTest extends TestCase
         Client::fake();
 
         $checkout = Azericard::checkout([
-            "ACTION"   => "0",
-            "ORDER"    => "123456",
-            "AMOUNT"   => 100,
-            "CURRENCY" => "944",
-            "INT_REF"  => "Test",
-            "RRN"      => "Test",
-            "TERMINAL" => 23546576587,
+            Options::ACTION   => \Srustamov\Azericard\Azericard::SUCCESS,
+            Options::ORDER    => "123456",
+            Options::AMOUNT   => 100,
+            Options::CURRENCY => "944",
+            Options::INT_REF  => "Test",
+            Options::RRN      => "Test",
+            Options::TERMINAL => 23546576587,
         ]);
 
         $this->assertTrue($checkout);
