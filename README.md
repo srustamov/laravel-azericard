@@ -1,6 +1,5 @@
 # Azericard Payment Package for Laravel
 
-
 ## Requirements
 
 - Laravel **^8|^9**
@@ -14,28 +13,23 @@ You can install the package via composer:
 composer require srustamov/laravel-azericard
 ```
 
-## For Laravel < 8 and PHP < 8
+### For Laravel < 8 and PHP < 8
 
 ```bash
 composer require srustamov/laravel-azericard:^1.0.1
 ```
+
+### Publish config file
 
 ```bash
 php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvider" --tag="config"
 ```
 
 ## Credits
+
 - [Samir Rustamov](https://github.com/srustamov)
 
-
 ## Example
-
-```php
-
-
-
-
-```
 
 ```php
 // routes
@@ -53,6 +47,9 @@ use Illuminate\Http\Request;
 use Srustamov\Azericard\Azericard;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
 use Srustamov\Azericard\Exceptions\AzericardException;
+use Illuminate\Support\Facades\DB;
+use App\Models\Payment\Transaction;
+use Srustamov\Azericard\Options;
 
 class AzericardController extends Controller
 {
@@ -64,21 +61,22 @@ class AzericardController extends Controller
      */
     public function getFormData(Azericard $azericard, Request $request)
     {
-        $order  = $request->get('order','1');
-        $amount = $request->get('amount',10); // AZN
+        $order = auth()->user()->transactions()->create([
+            'amount'         => $request->post('amount'),
+            'currency'       => 'AZN',
+            'status'         => Transaction::PENDING,
+            'type'           => Transaction::TYPE_PAYMENT,
+            'payment_method' => Transaction::PAYMENT_METHOD_AZERICARD,
+        ]);
+           
 
-        $formParams =  $azericard->setOrder($order)
-            ->setAmount($amount)
+        $formParams = $azericard->setOrder($order->id)
+            ->setAmount($order->amount)
             ->setMerchantUrl("/azericard/result/{$order}")
             //->debug($request->has('test'))
             ->getFormParams();
 
-
-        //for ui
-        //return $this->generateHtmlForm($formParams);
-
-        //for api
-        //return $formParams;
+        return response()->json($formParams);
     }
 
 
@@ -88,53 +86,93 @@ class AzericardController extends Controller
      */
     public function callback(Azericard $azericard, Request $request)
     {
-        try {
-
-            if ($azericard->checkout($request->all())) {
-
-                // payment success
-                // update order status or increment User balance
-            } else {
-                // payment fail
+       $transaction = Trasaction::findByAzericard($request->get(Options::ORDER));
+       
+       if($transaction->status !== Trasaction::PENDING){
+           return response()->json(['message' => 'Order already processed'], 409);
+       }
+       
+       DB::beginTransaction();
+       
+        try 
+        {
+            if ($azericard->checkout($request->all())) 
+            {
+                $transaction->update([
+                    'status' => Trasaction::SUCCESS,
+                    'rrn'    => $request->get(Options::RRN),
+                    'process_at' => now(),
+                ]); 
+                
+                //do something
+                //$transaction->user->increment('balance', $transaction->amount);
+                
+                DB::commit();
+                
+                $transaction->user->notify(new TransactionSuccess($transaction));
+                
+                return response()->json(['message' => 'Order processed successfully'], 200);
+            } 
+            else 
+            {
+                $transaction->update([
+                    'status' => Trasaction::FAILED,
+                    'process_at' => now(),
+                ]); 
+                
+                DB::commit();
+                
+                logger()->error('Azericard payment failed', $request->all());
+                
+                return response()->json(['message' => 'Order processed failed'], 500);
             }
-
         } 
         catch (FailedTransactionException $e) {
-            // payment fail
+            DB::rollBack();
+            
+            logger()->error('Azericard | Message: '.$e->getMessage(), $request->all());
+            //do something
         } 
         catch (AzericardException $e) {
-            // payment fail
+            DB::rollBack();
+            //do something
         } 
         catch (Exception $e) {
-            // payment fail
+            DB::rollBack();
+        } 
+        finally {
+            info('Azericard payment callback called', $request->all());
         }
     }
     
     /**
      * @param Azericard $azericard
      */
-    public function refund(Azericard $azericard)
+    public function refund(Request $request,Azericard $azericard)
     {
+        $transaction = Trasaction::findOrFail($request->post('transaction_id'));
+        
         try
         {
             $data = [
-                'rrn' => 'bank rrn value',
-                'int_ref' => 'int_ref value',
-                'created_at' => 'payment create datetime. example 2020-01-01 10:00:11'
+                'rrn' => $transaction->rrn,
+                'int_ref' => route('azericard.callback'),
+                'created_at' => $transaction->process_at,
             ];
-            }
-    
-            $order  = 1;
-            $amount = 1;
-    
-            if ($azericard->setAmount($amount)->setOrder($order)->refund($data)) {
-                // amount refund successfully
+  
+            $order = Transaction::createForRefund(
+                amount : $amount = $request->post('amount'),, 
+                parent_id: $transaction->id
+            );
+
+            if ($azericard->setAmount($amount)->setOrder($order->id)->refund($data)) {
+                // refund success
             } else {
                 // fail
             }
         }
         catch (FailedTransactionException $e) {
-            // payment fail
+            //info($e->getMessage(),$e->getParams());
         } 
         catch (AzericardException $e) {
             // payment fail
@@ -150,7 +188,6 @@ class AzericardController extends Controller
      */
     public function result($orderId)
     {
-
         /*
         if (statement) {
             return view('payment-success');
@@ -159,23 +196,6 @@ class AzericardController extends Controller
         return view('payment-failed');
 
        */
-
-    }
-
-
-    //example
-    private function generateHtmlForm($formParams): string
-    {
-        $html = '<form action="'.$formParams['action'].'" method="'.$formParams['method'].'">';
-
-        foreach ($formParams['inputs'] as $name => $value) {
-            $html .= '<input type="hidden" name="'.$name.'" value="'.$value.'" />';
-        }
-
-        $html .= '</form>';
-
-
-        return $html;
     }
 }
 
