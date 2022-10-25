@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Srustamov\Azericard;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Traits\Conditionable;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
@@ -13,6 +14,8 @@ use Srustamov\Azericard\Exceptions\ValidationException;
 
 class Azericard
 {
+    use Conditionable;
+
     public const SUCCESS = '0';
 
     public Options $options;
@@ -56,6 +59,11 @@ class Azericard
         }
 
         return $this;
+    }
+
+    public function getOptions(): Options
+    {
+        return $this->options;
     }
 
     public function setOption(string $key, $value): static
