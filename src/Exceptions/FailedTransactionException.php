@@ -98,7 +98,7 @@ class FailedTransactionException extends AzericardException
      * FailedTransactionException constructor.
      * @param null $code
      */
-    public function __construct($code = null)
+    public function __construct($code = null,public array $params = [])
     {
         if (array_key_exists($code, $this->messages)) {
             $message = $this->messages[$code];
@@ -107,5 +107,11 @@ class FailedTransactionException extends AzericardException
         }
 
         parent::__construct($message);
+    }
+
+
+    public function getParams(): array
+    {
+        return $this->params;
     }
 }
