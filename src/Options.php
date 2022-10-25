@@ -35,9 +35,9 @@ class Options implements ArrayAccess
 
     public function __construct(public array $attributes = [])
     {
-        $this->set('timestamp', gmdate("YmdHis"));
-        $this->set('currency', $attributes['currency'] ?? "AZN");
-        $this->set('nonce', substr(md5((string)mt_rand()), 0, 16));
+        $this->setIf(!isset($attributes['timestamp']),'timestamp', gmdate("YmdHis"));
+        $this->setIf(!isset($attributes['currency']),'currency', "AZN");
+        $this->setIf(!isset($attributes['nonce']),'nonce', substr(md5((string)mt_rand()), 0, 16));
     }
 
     public function set(string $name, $value): static
@@ -68,6 +68,14 @@ class Options implements ArrayAccess
         }
 
         return $this->attributes[$name] ?? $default;
+    }
+
+    public function setIf(bool $condition, string $name, $value): static
+    {
+        if ($condition) {
+            $this->set($name, $value);
+        }
+        return $this;
     }
 
     public function setIrKeyAttribute($value): void
