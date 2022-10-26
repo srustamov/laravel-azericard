@@ -161,7 +161,7 @@ class Azericard
         $params[Options::TIMESTAMP] = $this->options->get('timestamp');
         $params[Options::NONCE] = $this->options->get('nonce');
 
-        if (Carbon::createFromTimeString($attributes['created_at'])->addDay()->isPast()) {
+        if (Carbon::parse($attributes['created_at'])->addDay()->isPast()) {
             $params[Options::TRTYPE] = '24';
         }
 
