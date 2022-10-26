@@ -14,7 +14,7 @@ class Client implements ClientContract
 
     protected bool $debug = false;
 
-    protected static bool $fake;
+    protected static bool $fake = false;
 
     public static function fake()
     {
