@@ -28,6 +28,7 @@ php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvi
 ## Credits
 
 - [Samir Rustamov](https://github.com/srustamov)
+- [Azericard](https://developer.azericard.com/)
 
 ## Example
 
