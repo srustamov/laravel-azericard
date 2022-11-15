@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace Srustamov\Azericard;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Traits\Conditionable;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
+use Srustamov\Azericard\Exceptions\AzericardException;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
+use Srustamov\Azericard\Exceptions\SignatureDoesNotMatchException;
 use Srustamov\Azericard\Exceptions\ValidationException;
+use Throwable;
 
 
 class Azericard
 {
     use Conditionable;
-
-    public const SUCCESS = '0';
 
     public Options $options;
 
@@ -25,17 +27,18 @@ class Azericard
     protected array $appends = [];
 
     protected array $required_refund_keys = [
-        'rrn',
-        'int_ref',
-        'created_at',
+        Options::RRN,
+        Options::INT_REF,
+        Options::CREATED_AT,
     ];
 
     protected int|float $amount = 0;
 
     public function __construct(
-        private readonly ClientContract $client,
-        private readonly SignatureGeneratorContract $signatureGenerator,
-    ) {
+        private ClientContract             $client,
+        private SignatureGeneratorContract $signatureGenerator,
+    )
+    {
         $this->setOptions(new Options(app('config')->get('azericard', [])));
     }
 
@@ -54,10 +57,6 @@ class Azericard
 
         $this->client->setDebug($this->options->get(Options::DEBUG));
 
-        if ($this->options->has(Options::SIGNATURE_KEY_NAME)) {
-            $this->signatureGenerator->setSign($this->options->get(Options::SIGNATURE_KEY_NAME));
-        }
-
         return $this;
     }
 
@@ -74,16 +73,12 @@ class Azericard
             $this->client->setDebug($value);
         }
 
-        if ($key === Options::SIGNATURE_KEY_NAME) {
-            $this->signatureGenerator->setSign($value);
-        }
-
         return $this;
     }
 
     public function setMerchantUrl(string $url): static
     {
-        $this->options->set('merchant_url', $url);
+        $this->options->set(Options::MERCH_URL, $url);
 
         return $this;
     }
@@ -95,33 +90,34 @@ class Azericard
         return $this;
     }
 
-    public function getFormParams(): array
+    public function createOrder(): array
     {
-        if (!$this->getAmount() || !$this->getPaymentOrderId()) {
+        if (!$this->getAmount() || !$this->getOrderId()) {
             throw new ValidationException('Payment required amount and order');
         }
 
         return [
             "action" => $this->client->getUrl(),
             'method' => 'POST',
-            "inputs" => [
-                Options::AMOUNT     => $this->getAmount(),
-                Options::ORDER      => $this->getPaymentOrderId(),
-                Options::CURRENCY   => $this->options->get('currency', 'AZN'),
-                Options::DESC       => $this->options->get('description'),
-                Options::MERCH_NAME => $this->options->get('merchant_name'),
-                Options::MERCH_URL  => $this->options->get('merchant_url'),
-                Options::TERMINAL   => $this->options->get('terminal'),
-                Options::EMAIL      => $this->options->get('email'),
-                Options::TRTYPE     => $this->options->get('tr_type'),
-                Options::COUNTRY    => $this->options->get('country'),
-                Options::MERCH_GMT  => $this->options->get('merchant_gmt'),
-                Options::TIMESTAMP  => $this->options->get('timestamp'),
-                Options::NONCE      => $this->options->get('nonce'),
-                Options::BACKREF    => $this->options->get('back_ref_url'),
-                Options::LANG       => $this->options->get('lang'),
-                Options::P_SIGN     => $this->signatureGenerator->getPSign($this),
+            "inputs" => array_merge($params = [
+                Options::AMOUNT => $this->getAmount(),
+                Options::ORDER => $this->getOrderId(),
+                Options::CURRENCY => $this->options->get(Options::CURRENCY, 'AZN'),
+                Options::DESC => $this->options->get(Options::DESC),
+                Options::MERCH_NAME => $this->options->get(Options::MERCH_NAME),
+                Options::MERCH_URL => $this->options->get(Options::MERCH_URL),
+                Options::TERMINAL => $this->options->get(Options::TERMINAL),
+                Options::EMAIL => $this->options->get(Options::EMAIL),
+                Options::TRTYPE => $this->options->get(Options::TRTYPE),
+                Options::COUNTRY => $this->options->get(Options::COUNTRY),
+                Options::MERCH_GMT => $this->options->get(Options::MERCH_GMT),
+                Options::TIMESTAMP => $this->options->get(Options::TIMESTAMP),
+                Options::NONCE => $this->options->get(Options::NONCE),
+                Options::BACKREF => $this->options->get(Options::BACKREF),
+                Options::LANG => $this->options->get(Options::LANG)
             ],
+            [ Options::P_SIGN => $this->signatureGenerator->getPSignForCreateOrder($params)],
+            ),
             ...$this->appends,
         ];
     }
@@ -138,7 +134,7 @@ class Azericard
         return $this;
     }
 
-    public function getPaymentOrderId(): string
+    public function getOrderId(): string
     {
         return $this->order;
     }
@@ -152,59 +148,72 @@ class Azericard
         }
 
         $params[Options::AMOUNT] = (string)round($this->getAmount(), 2);
-        $params[Options::CURRENCY] = $this->options->get('currency', 'AZN');
-        $params[Options::ORDER] = $this->getPaymentOrderId();
-        $params[Options::RRN] = $attributes['rrn'];
-        $params[Options::INT_REF] = $attributes['int_ref'];
-        $params[Options::TERMINAL] = $this->options->get('terminal');
-        $params[Options::TRTYPE] = '22';
-        $params[Options::TIMESTAMP] = $this->options->get('timestamp');
-        $params[Options::NONCE] = $this->options->get('nonce');
+        $params[Options::CURRENCY] = $this->options->get(Options::CURRENCY, 'AZN');
+        $params[Options::ORDER] = $this->getOrderId();
+        $params[Options::RRN] = $attributes[Options::RRN];
+        $params[Options::INT_REF] = $attributes[Options::INT_REF];
+        $params[Options::TERMINAL] = $this->options->get(Options::TERMINAL);
+        $params[Options::TRTYPE] = Options::REFUND_ORDER_TR_TYPE;
+        $params[Options::TIMESTAMP] = $this->options->get(Options::TIMESTAMP);
+        $params[Options::NONCE] = $this->options->get(Options::NONCE);
 
-        if (Carbon::parse($attributes['created_at'])->addDay()->isPast()) {
+        if (Carbon::parse($attributes[Options::CREATED_AT])->addDay()->isPast()) {
             $params[Options::TRTYPE] = '24';
         }
 
-        $params[Options::P_SIGN] = $this->signatureGenerator->generateForRefund($params);
+        $params[Options::P_SIGN] = $this->signatureGenerator->generatePSignForRefund($params);
 
-        $content = $this->client->refund($params);
+        $content = $this->client->createRefund($params);
 
-        if ($content === static::SUCCESS) {
+        if ($content === Options::RESPONSE_CODES['SUCCESS']) {
             return true;
         }
 
-        throw new FailedTransactionException($content,$params);
+        throw new FailedTransactionException($content, $params);
     }
 
-
-    public function checkout($request): bool
+    /**
+     * @throws Throwable
+     * @throws SignatureDoesNotMatchException
+     * @throws FailedTransactionException
+     */
+    public function completeOrder(array $request): bool
     {
-        if ($request[Options::ACTION] != static::SUCCESS) {
-            throw new FailedTransactionException($request[Options::ACTION],$request);
+        if ($request[Options::ACTION] != Options::RESPONSE_CODES['SUCCESS']) {
+            throw new FailedTransactionException($request[Options::ACTION], $request);
         }
+
+        throw_unless($this->signatureGenerator->verifySignature(
+            data: $this->signatureGenerator->generateSignContent(
+                $request,
+                Options::COMPLETE_ORDER_SIGN_PARAMS
+            ),
+            signature: $request[Options::P_SIGN]
+        ),SignatureDoesNotMatchException::class);
 
         $this->setOrder($request[Options::ORDER]);
 
         $params = [];
 
-        $params[Options::ORDER] = $this->getPaymentOrderId();
+        $params[Options::ORDER] = $this->getOrderId();
         $params[Options::AMOUNT] = $request[Options::AMOUNT];
         $params[Options::CURRENCY] = $request[Options::CURRENCY];
         $params[Options::RRN] = $request[Options::RRN];
         $params[Options::INT_REF] = $request[Options::INT_REF];
         $params[Options::TERMINAL] = $request[Options::TERMINAL];
-        $params[Options::TRTYPE] = "21";
-        $params[Options::TIMESTAMP] = $this->options->get('timestamp');
-        $params[Options::NONCE] = $this->options->get('nonce');
-        $params[Options::P_SIGN] = $this->signatureGenerator->getSignForCheckout($this, $request);
+        $params[Options::TRTYPE] = Options::COMPLETE_ORDER_TR_TYPE;
+        $params[Options::TIMESTAMP] = $this->options->get(Options::TIMESTAMP);
+        $params[Options::NONCE] = $this->options->get(Options::NONCE);
 
-        $content = $this->client->checkout($params);
+        $params[Options::P_SIGN] = $this->signatureGenerator->getPSignForCompleteOrder($params);
 
-        if ($content === static::SUCCESS) {
+        $content = $this->client->completeOrder($params);
+
+        if ($content === Options::RESPONSE_CODES['SUCCESS']) {
             return true;
         }
 
-        throw new FailedTransactionException($content,$request);
+        throw new FailedTransactionException($content, $request);
     }
 
     public function setOrder(string $order): static

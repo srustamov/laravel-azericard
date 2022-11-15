@@ -1,6 +1,7 @@
 .idea
 composer.lock
 vendor
+storage
 build
 docs
 coverage

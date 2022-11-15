@@ -6,11 +6,17 @@ use Srustamov\Azericard\Azericard;
 
 interface SignatureGeneratorContract
 {
-    public function setSign(string $sign): static;
+    public function verifySignature(string $data,string $signature) :bool;
 
-    public function getPSign(Azericard $azericard): string;
+    public function getPSignForCreateOrder(array $params): string;
 
-    public function getSignForCheckout(Azericard $azericard,$request): string;
+    public function generateSignKey($data): string;
 
-    public function generateForRefund(array $params): string;
+    public function getPSignForCompleteOrder(array $params): string;
+
+    public function generatePSignForRefund(array $params): string;
+
+    public function hasPublicKey() :bool;
+
+    public function generateSignContent(array $data,array $keys) : string;
 }

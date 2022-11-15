@@ -8,7 +8,7 @@ interface ClientContract
 
     public function setDebug(bool $debug): ClientContract;
 
-    public function refund($params): bool|string;
+    public function createRefund($params): bool|string;
 
-    public function checkout($params): bool|string;
+    public function completeOrder($params): bool|string;
 }

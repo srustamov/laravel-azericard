@@ -11,7 +11,6 @@ class Options implements ArrayAccess
     use Conditionable;
 
     public const DEBUG = 'debug';
-    public const SIGNATURE_KEY_NAME = 'sign';
 
     public const ACTION = "ACTION";
     public const AMOUNT = "AMOUNT";
@@ -30,14 +29,53 @@ class Options implements ArrayAccess
     public const BACKREF = "BACKREF";
     public const LANG = "LANG";
     public const RRN = "RRN";
-    public const INT_REF = "INTREF";
+    public const INT_REF = "INT_REF";
     public const P_SIGN = "P_SIGN";
+
+
+    public const CREATED_AT = "created_at";
+
+    public const RESPONSE_CODES = [
+        'SUCCESS' => "0",
+        'DUPLICATE' => "1",
+        'WRONG_PARAMETER' => "2",
+        'WRONG_P_SIGN' => "3",
+    ];
+
+
+    public const CREATE_ORDER_TR_TYPE = 0;
+    public const COMPLETE_ORDER_TR_TYPE = 21;
+    public const REFUND_ORDER_TR_TYPE = 22;
+
+
+    public const CREATE_ORDER_SIGN_PARAMS = [
+        self::AMOUNT,
+        self::CURRENCY,
+        self::TERMINAL,
+        self::TRTYPE,
+        self::TIMESTAMP,
+        self::NONCE,
+        self::MERCH_URL,
+    ];
+
+    public const COMPLETE_ORDER_SIGN_PARAMS = [
+        self::AMOUNT,
+        self::CURRENCY,
+        self::TERMINAL,
+        self::TRTYPE,
+        self::ORDER,
+        self::RRN,
+        self::INT_REF,
+    ];
+
+    public const REFUND_ORDER_SIGN_PARAMS = self::COMPLETE_ORDER_SIGN_PARAMS;
+
 
     public function __construct(public array $attributes = [])
     {
-        $this->setIf(!isset($attributes['timestamp']),'timestamp', gmdate("YmdHis"));
-        $this->setIf(!isset($attributes['currency']),'currency', "AZN");
-        $this->setIf(!isset($attributes['nonce']),'nonce', substr(md5((string)mt_rand()), 0, 16));
+        $this->setIf(!isset($attributes[static::TIMESTAMP]), static::TIMESTAMP, gmdate("YmdHis"));
+        $this->setIf(!isset($attributes[static::CURRENCY]), static::CURRENCY, "AZN");
+        $this->setIf(!isset($attributes[static::NONCE]), static::NONCE, substr(md5((string)mt_rand()), 0, 16));
     }
 
     public function set(string $name, $value): static
@@ -78,14 +116,9 @@ class Options implements ArrayAccess
         return $this;
     }
 
-    public function setIrKeyAttribute($value): void
-    {
-        $this->attributes['irKey'] = $this->get('debug') ? 'INT_REF' : 'INTREF';
-    }
-
     public function getTrTypeAttribute()
     {
-        return $this->attributes['tr_type'] ?? 0;
+        return $this->attributes[static::TRTYPE] ?? static::CREATE_ORDER_TR_TYPE;
     }
 
     public function offsetExists(mixed $offset): bool

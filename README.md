@@ -34,7 +34,7 @@ php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvi
 ```php
 // routes
 Route::prefix('azericard')->group(function () {
-    Route::get('/get-form-params',[\App\Http\Controllers\AzericardController::class,'getFormData']);
+    Route::get('/create-order',[\App\Http\Controllers\AzericardController::class,'createOrder']);
     Route::post('/callback',[\App\Http\Controllers\AzericardController::class,'callback']);
     Route::get('/result/{orderId}',[\App\Http\Controllers\AzericardController::class,'result']);
 });
@@ -59,7 +59,7 @@ class AzericardController extends Controller
      * @param Request $request
      * @return mixed
      */
-    public function getFormData(Azericard $azericard, Request $request)
+    public function createOrder(Azericard $azericard, Request $request)
     {
         $order = auth()->user()->transactions()->create([
             'amount'         => $request->post('amount'),
@@ -74,7 +74,7 @@ class AzericardController extends Controller
             ->setAmount($order->amount)
             ->setMerchantUrl("/azericard/result/{$order}")
             //->debug($request->has('test'))
-            ->getFormParams();
+            ->createOrder();
 
         return response()->json($formParams);
     }
@@ -96,7 +96,7 @@ class AzericardController extends Controller
        
         try 
         {
-            if ($azericard->checkout($request->all())) 
+            if ($azericard->completeOrder($request->all())) 
             {
                 $transaction->update([
                     'status' => Trasaction::SUCCESS,
@@ -155,13 +155,13 @@ class AzericardController extends Controller
         try
         {
             $data = [
-                'rrn' => $transaction->rrn,
-                'int_ref' => route('azericard.callback'),
-                'created_at' => $transaction->process_at,
+                Options::RRN => $transaction->rrn,
+                Options::INT_REF => $transaction->int_ref,
+                Options::CREATED_AT => $transaction->process_at,
             ];
   
             $order = Transaction::createForRefund(
-                amount : $amount = $request->post('amount'),, 
+                amount : $amount = $request->post('amount'), 
                 parent_id: $transaction->id
             );
 

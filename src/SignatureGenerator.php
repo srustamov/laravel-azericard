@@ -2,93 +2,98 @@
 
 namespace Srustamov\Azericard;
 
+
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
+use Srustamov\Azericard\Exceptions\AzericardException;
 
 class SignatureGenerator implements SignatureGeneratorContract
 {
+    public const ALGORITHM = 'sha256WithRSAEncryption';
 
-    public const ALGORITHM = 'sha1';
+    public const PRIVATE_KEY_NAME = 'private';
 
-    public function __construct(protected string $sign = '') {}
+    public const PUBLIC_KEY_NAME = 'public';
 
-    public function setSign(string $sign): static
+    public function __construct(public array $config = [])
     {
-        $this->sign = $sign;
+        $privateKeyFile = $this->config[static::PRIVATE_KEY_NAME] ?? null;
 
-        return $this;
+        if (!$privateKeyFile) {
+            throw new AzericardException("Private key file path required");
+        }
+
+        if (!file_exists($privateKeyFile)) {
+            throw new AzericardException("Private key file not found");
+        }
     }
 
-    public function getPSign(Azericard $azericard): string
+    public function hasPublicKey(): bool
     {
-        $string = strlen((string)$azericard->getAmount()) . $azericard->getAmount()
-            . strlen((string)$azericard->options->get('currency')) . $azericard->options->get('currency')
-            . strlen($azericard->getPaymentOrderId()) . $azericard->getPaymentOrderId();
+        return !empty($this->config[static::PUBLIC_KEY_NAME]);
+    }
 
-        $keys = [
-            'description',
-            'merchant_name',
-            'merchant_url',
-            'terminal',
-            'email',
-            'tr_type',
-            'country',
-            'merchant_gmt',
-            'timestamp',
-            'nonce',
-            'back_ref_url',
-        ];
+    public function verifySignature(string $data, string $signature): bool
+    {
+        if ($this->hasPublicKey()) {
+            return (bool)openssl_verify(
+                data: $data,
+                signature: $signature,
+                public_key: file_get_contents($this->config[static::PUBLIC_KEY_NAME]),
+                algorithm: OPENSSL_ALGO_SHA256
+            );
+        }
+
+        return true;
+    }
+
+    public function generateSignKey($data): string
+    {
+        openssl_sign(
+            data: $data,
+            signature: $signature,
+            private_key: file_get_contents($this->config[static::PRIVATE_KEY_NAME]),
+            algorithm: static::ALGORITHM
+        );
+
+        return bin2hex($signature);
+    }
+
+    public function getPSignForCreateOrder(array $params): string
+    {
+        return $this->generateSignKey(
+            $this->generateSignContent($params, Options::CREATE_ORDER_SIGN_PARAMS)
+        );
+    }
+
+    public function getPSignForCompleteOrder(array $params): string
+    {
+        return $this->generateSignKey(
+            $this->generateSignContent($params, Options::COMPLETE_ORDER_SIGN_PARAMS)
+        );
+    }
+
+    public function generatePSignForRefund(array $params): string
+    {
+        return $this->generateSignKey(
+            $this->generateSignContent($params, Options::REFUND_ORDER_SIGN_PARAMS)
+        );
+    }
+
+    public function generateSignContent(array $data, array $keys): string
+    {
+        $content = "";
 
         foreach ($keys as $key) {
-            $string .= strlen((string)$azericard->options->get($key)) . $azericard->options->get($key);
+
+            if (!isset($data[$key])) {
+                continue;
+            }
+
+            $value = $data[$key];
+
+            $content .= strlen((string)$value) . $value;
         }
 
-        return $this->generateSign($string);
-    }
-
-    public function generateSign($data): string
-    {
-        $string = "";
-
-        for ($i = 0, $iMax = strlen($this->sign); $i < $iMax; $i += 2) {
-            $string .= chr(hexdec(substr($this->sign, $i, 2)));
-        }
-
-        return hash_hmac(static::ALGORITHM, $data, $string);
-    }
-
-    public function getSignForCheckout(Azericard $azericard, $request): string
-    {
-        $string = "" . strlen($request[Options::ORDER]) . $request[Options::ORDER] .
-            strlen($request[Options::AMOUNT]) . $request[Options::AMOUNT] .
-            strlen($request[Options::CURRENCY]) . $request[Options::CURRENCY] .
-            strlen($request[Options::RRN]) . $request[Options::RRN] .
-            strlen($request[Options::INT_REF]) . $request[Options::INT_REF] .
-            strlen("21") . "21" .
-            strlen($request[Options::TERMINAL]) . $request[Options::TERMINAL] .
-            strlen($azericard->options->get('timestamp')) . $azericard->options->get('timestamp') .
-            strlen($azericard->options->get('nonce')) . $azericard->options->get('nonce');
-
-        return $this->generateSign($string);
-    }
-
-    public function generateForRefund(array $params): string
-    {
-        $keys = [
-            Options::ORDER,
-            Options::AMOUNT,
-            Options::CURRENCY,
-            Options::RRN,
-            Options::INT_REF,
-            Options::TRTYPE,
-            Options::TERMINAL,
-            Options::TIMESTAMP,
-            Options::NONCE,
-        ];
-
-        $string = "";
-        foreach ($keys as $key) {
-            $string .= strlen($params[$key]) . $params[$key];
-        }
-        return $this->generateSign($string);
+        return $content;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Srustamov\Azericard;
 
+use Illuminate\Support\Facades\Http;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Exceptions\ClientException;
 
@@ -33,85 +34,36 @@ class Client implements ClientContract
         return $this;
     }
 
-    public function refund($params): bool|string
+    public function createRefund($params): bool|string
     {
-        if (static::$fake) {
-            return Azericard::SUCCESS;
-        }
-
-        $curl = curl_init($this->getUrl());
-
-        curl_setopt_array($curl, [
-            CURLOPT_POSTREDIR      => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER         => false,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_ENCODING       => "",
-            CURLOPT_AUTOREFERER    => true,
-            CURLOPT_CONNECTTIMEOUT => 120,
-            CURLOPT_TIMEOUT        => 120,
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query($params),
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-        ]);
-
-        $content = curl_exec($curl);
-
-        if (curl_errno($curl)) {
-
-            $error = curl_error($curl);
-
-            curl_close($curl);
-
-            throw new ClientException($error);
-        }
-
-        curl_close($curl);
-
-        return $content;
+        return $this->sendRequest($params);
     }
 
 
-    public function checkout($params): bool|string
+    public function completeOrder($params): string
+    {
+        return $this->sendRequest($params);
+    }
+
+    protected function sendRequest(array $params = []): string
     {
         if (static::$fake) {
-            return Azericard::SUCCESS;
+            return Options::RESPONSE_CODES["SUCCESS"];
         }
 
-        $curl = curl_init($this->getUrl());
+        $response = Http::withoutVerifying()
+            ->timeout(120)
+            ->asForm()
+            ->post($this->getUrl(),$params);
 
-        curl_setopt_array($curl, [
-            CURLOPT_POSTREDIR      => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER         => false,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_ENCODING       => "",
-            CURLOPT_AUTOREFERER    => true,
-            CURLOPT_CONNECTTIMEOUT => 120,
-            CURLOPT_TIMEOUT        => 120,
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query($params),
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false
-        ]);
-
-        $content = curl_exec($curl);
-
-        if (curl_errno($curl)) {
-
-            $error = curl_error($curl);
-
-            curl_close($curl);
-
-            throw new ClientException($error);
+        if ($response->successful()) {
+            return $response->body();
         }
 
-        curl_close($curl);
-
-        return $content;
+        throw new ClientException(
+            $response->toException()->getMessage(),
+            $response->toException()->getCode(),
+        );
     }
 
 }
