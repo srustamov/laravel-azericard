@@ -98,12 +98,12 @@ class FailedTransactionException extends AzericardException
      * FailedTransactionException constructor.
      * @param null $code
      */
-    public function __construct($code = null,public array $params = [])
+    public function __construct($code = null, public array $params = [])
     {
         if (array_key_exists($code, $this->messages)) {
             $message = $this->messages[$code];
         } else {
-            $message = 'Unknown RC code: '.$code;
+            $message = 'Unknown RC code: ' . $code;
         }
 
         parent::__construct($message);

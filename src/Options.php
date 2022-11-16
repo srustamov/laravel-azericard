@@ -36,10 +36,10 @@ class Options implements ArrayAccess
     public const CREATED_AT = "created_at";
 
     public const RESPONSE_CODES = [
-        'SUCCESS' => "0",
-        'DUPLICATE' => "1",
+        'SUCCESS'         => "0",
+        'DUPLICATE'       => "1",
         'WRONG_PARAMETER' => "2",
-        'WRONG_P_SIGN' => "3",
+        'WRONG_P_SIGN'    => "3",
     ];
 
 

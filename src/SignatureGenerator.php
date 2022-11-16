@@ -84,7 +84,6 @@ class SignatureGenerator implements SignatureGeneratorContract
         $content = "";
 
         foreach ($keys as $key) {
-
             if (!isset($data[$key])) {
                 continue;
             }

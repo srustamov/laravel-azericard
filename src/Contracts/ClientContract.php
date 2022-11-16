@@ -4,7 +4,7 @@ namespace Srustamov\Azericard\Contracts;
 
 interface ClientContract
 {
-    public function getUrl() : string;
+    public function getUrl(): string;
 
     public function setDebug(bool $debug): ClientContract;
 

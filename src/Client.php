@@ -22,7 +22,7 @@ class Client implements ClientContract
         static::$fake = true;
     }
 
-    public function getUrl() : string
+    public function getUrl(): string
     {
         return $this->debug ? $this->urls['test'] : $this->urls['production'];
     }
@@ -54,7 +54,7 @@ class Client implements ClientContract
         $response = Http::withoutVerifying()
             ->timeout(120)
             ->asForm()
-            ->post($this->getUrl(),$params);
+            ->post($this->getUrl(), $params);
 
         if ($response->successful()) {
             return $response->body();

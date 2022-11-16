@@ -6,10 +6,6 @@ use Illuminate\Support\ServiceProvider;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 
-/**
- * Class AzericardServiceProvider
- * @package Srustamov\Azericard
- */
 class AzericardServiceProvider extends ServiceProvider
 {
     public function boot(): void

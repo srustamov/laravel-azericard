@@ -34,15 +34,16 @@ class AzericardTest extends TestCase
             Options::TRTYPE   => "0",
             Options::INT_REF  => "Test",
             Options::RRN      => "Test",
-            Options::TERMINAL => 23546576587
+            Options::TERMINAL => 23546576587,
         ];
 
-        /**@var $signatureGenerator SignatureGeneratorContract*/
+        /**@var $signatureGenerator SignatureGeneratorContract */
         $signatureGenerator = app(SignatureGeneratorContract::class);
 
         $signature = $signatureGenerator->generateSignKey(
             $signatureGenerator->generateSignContent(
-                $data,Options::COMPLETE_ORDER_SIGN_PARAMS
+                $data,
+                Options::COMPLETE_ORDER_SIGN_PARAMS
             )
         );
 
@@ -58,8 +59,8 @@ class AzericardTest extends TestCase
         Client::fake();
 
         $refund = Azericard::setOrder("000002")->setAmount(100)->refund([
-            Options::RRN => "465854346234784",
-            Options::INT_REF => "...",
+            Options::RRN        => "465854346234784",
+            Options::INT_REF    => "...",
             Options::CREATED_AT => now(),
         ]);
 

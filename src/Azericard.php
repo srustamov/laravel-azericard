@@ -35,10 +35,9 @@ class Azericard
     protected int|float $amount = 0;
 
     public function __construct(
-        private ClientContract             $client,
+        private ClientContract $client,
         private SignatureGeneratorContract $signatureGenerator,
-    )
-    {
+    ) {
         $this->setOptions(new Options(app('config')->get('azericard', [])));
     }
 
@@ -99,24 +98,25 @@ class Azericard
         return [
             "action" => $this->client->getUrl(),
             'method' => 'POST',
-            "inputs" => array_merge($params = [
-                Options::AMOUNT => $this->getAmount(),
-                Options::ORDER => $this->getOrderId(),
-                Options::CURRENCY => $this->options->get(Options::CURRENCY, 'AZN'),
-                Options::DESC => $this->options->get(Options::DESC),
-                Options::MERCH_NAME => $this->options->get(Options::MERCH_NAME),
-                Options::MERCH_URL => $this->options->get(Options::MERCH_URL),
-                Options::TERMINAL => $this->options->get(Options::TERMINAL),
-                Options::EMAIL => $this->options->get(Options::EMAIL),
-                Options::TRTYPE => $this->options->get(Options::TRTYPE),
-                Options::COUNTRY => $this->options->get(Options::COUNTRY),
-                Options::MERCH_GMT => $this->options->get(Options::MERCH_GMT),
-                Options::TIMESTAMP => $this->options->get(Options::TIMESTAMP),
-                Options::NONCE => $this->options->get(Options::NONCE),
-                Options::BACKREF => $this->options->get(Options::BACKREF),
-                Options::LANG => $this->options->get(Options::LANG)
-            ],
-            [ Options::P_SIGN => $this->signatureGenerator->getPSignForCreateOrder($params)],
+            "inputs" => array_merge(
+                $params = [
+                    Options::AMOUNT     => $this->getAmount(),
+                    Options::ORDER      => $this->getOrderId(),
+                    Options::CURRENCY   => $this->options->get(Options::CURRENCY, 'AZN'),
+                    Options::DESC       => $this->options->get(Options::DESC),
+                    Options::MERCH_NAME => $this->options->get(Options::MERCH_NAME),
+                    Options::MERCH_URL  => $this->options->get(Options::MERCH_URL),
+                    Options::TERMINAL   => $this->options->get(Options::TERMINAL),
+                    Options::EMAIL      => $this->options->get(Options::EMAIL),
+                    Options::TRTYPE     => $this->options->get(Options::TRTYPE),
+                    Options::COUNTRY    => $this->options->get(Options::COUNTRY),
+                    Options::MERCH_GMT  => $this->options->get(Options::MERCH_GMT),
+                    Options::TIMESTAMP  => $this->options->get(Options::TIMESTAMP),
+                    Options::NONCE      => $this->options->get(Options::NONCE),
+                    Options::BACKREF    => $this->options->get(Options::BACKREF),
+                    Options::LANG       => $this->options->get(Options::LANG),
+                ],
+                [Options::P_SIGN => $this->signatureGenerator->getPSignForCreateOrder($params)],
             ),
             ...$this->appends,
         ];
@@ -183,13 +183,16 @@ class Azericard
             throw new FailedTransactionException($request[Options::ACTION], $request);
         }
 
-        throw_unless($this->signatureGenerator->verifySignature(
-            data: $this->signatureGenerator->generateSignContent(
-                $request,
-                Options::COMPLETE_ORDER_SIGN_PARAMS
+        throw_unless(
+            $this->signatureGenerator->verifySignature(
+                data: $this->signatureGenerator->generateSignContent(
+                    $request,
+                    Options::COMPLETE_ORDER_SIGN_PARAMS
+                ),
+                signature: $request[Options::P_SIGN]
             ),
-            signature: $request[Options::P_SIGN]
-        ),SignatureDoesNotMatchException::class);
+            SignatureDoesNotMatchException::class
+        );
 
         $this->setOrder($request[Options::ORDER]);
 

@@ -7,3 +7,4 @@ docs
 coverage
 .phpunit.result.cache
 .DS_Store
+.env

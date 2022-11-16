@@ -2,11 +2,9 @@
 
 namespace Srustamov\Azericard\Contracts;
 
-use Srustamov\Azericard\Azericard;
-
 interface SignatureGeneratorContract
 {
-    public function verifySignature(string $data,string $signature) :bool;
+    public function verifySignature(string $data, string $signature): bool;
 
     public function getPSignForCreateOrder(array $params): string;
 
@@ -16,7 +14,7 @@ interface SignatureGeneratorContract
 
     public function generatePSignForRefund(array $params): string;
 
-    public function hasPublicKey() :bool;
+    public function hasPublicKey(): bool;
 
-    public function generateSignContent(array $data,array $keys) : string;
+    public function generateSignContent(array $data, array $keys): string;
 }
