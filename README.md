@@ -1,9 +1,14 @@
 # Azericard Payment Package for Laravel
 
+[![Total Downloads](https://img.shields.io/packagist/dt/srustamov/laravel-azericard)](https://packagist.org/packages/srustamov/laravel-azericard)
+[![GitHub license](https://img.shields.io/github/license/srustamov/laravel-azericard.svg)](https://github.com/srustamov/laravel-azericard/blob/master/LICENSE.md)
+
+[![Build Status](https://app.travis-ci.com/srustamov/laravel-azericard.svg?branch=master)](https://app.travis-ci.com/srustamov/laravel-azericard.svg)
+
 ## Requirements
 
 - Laravel **^8|^9**
-- PHP **^8.1**
+- PHP **^8.0**
 
 ## Installation
 

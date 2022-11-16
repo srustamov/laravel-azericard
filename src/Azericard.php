@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Srustamov\Azericard;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Traits\Conditionable;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
-use Srustamov\Azericard\Exceptions\AzericardException;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
 use Srustamov\Azericard\Exceptions\SignatureDoesNotMatchException;
 use Srustamov\Azericard\Exceptions\ValidationException;
@@ -37,17 +35,14 @@ class Azericard
     public function __construct(
         private ClientContract $client,
         private SignatureGeneratorContract $signatureGenerator,
+        Options $options
     ) {
-        $this->setOptions(new Options(app('config')->get('azericard', [])));
+        $this->setOptions($options);
     }
 
-    public function setDebug(bool $boolean): static
+    public function getOptions(): Options
     {
-        $this->options->set(Options::DEBUG, $boolean);
-
-        $this->client->setDebug($boolean);
-
-        return $this;
+        return $this->options;
     }
 
     public function setOptions(Options $options): static
@@ -59,11 +54,6 @@ class Azericard
         return $this;
     }
 
-    public function getOptions(): Options
-    {
-        return $this->options;
-    }
-
     public function setOption(string $key, $value): static
     {
         $this->options->set($key, $value);
@@ -71,6 +61,15 @@ class Azericard
         if ($key === Options::DEBUG) {
             $this->client->setDebug($value);
         }
+
+        return $this;
+    }
+
+    public function setDebug(bool $boolean): static
+    {
+        $this->options->set(Options::DEBUG, $boolean);
+
+        $this->client->setDebug($boolean);
 
         return $this;
     }
