@@ -226,6 +226,13 @@ class Azericard
         return $this;
     }
 
+    public function setEmail(string $email): static
+    {
+        $this->options->set(Options::EMAIL, $email);
+
+        return $this;
+    }
+
     public function getClient(): ClientContract
     {
         return $this->client;
