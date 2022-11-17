@@ -78,6 +78,14 @@ class Options implements ArrayAccess
         $this->setIf(!isset($attributes[static::NONCE]), static::NONCE, substr(md5((string)mt_rand()), 0, 16));
     }
 
+    public function setIf(bool $condition, string $name, $value): static
+    {
+        if ($condition) {
+            $this->set($name, $value);
+        }
+        return $this;
+    }
+
     public function set(string $name, $value): static
     {
         if (method_exists($this, $mutator = 'set' . Str::studly($name) . 'Attribute')) {
@@ -106,14 +114,6 @@ class Options implements ArrayAccess
         }
 
         return $this->attributes[$name] ?? $default;
-    }
-
-    public function setIf(bool $condition, string $name, $value): static
-    {
-        if ($condition) {
-            $this->set($name, $value);
-        }
-        return $this;
     }
 
     public function getTrTypeAttribute()

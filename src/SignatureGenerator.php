@@ -11,7 +11,6 @@ class SignatureGenerator implements SignatureGeneratorContract
     public const ALGORITHM = 'sha256WithRSAEncryption';
 
     public const PRIVATE_KEY_NAME = 'private';
-
     public const PUBLIC_KEY_NAME = 'public';
 
     public function __construct(public array $config = [])

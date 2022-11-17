@@ -24,12 +24,6 @@ class Azericard
 
     protected array $appends = [];
 
-    protected array $required_refund_keys = [
-        Options::RRN,
-        Options::INT_REF,
-        Options::CREATED_AT,
-    ];
-
     protected int|float $amount = 0;
 
     public function __construct(
@@ -138,25 +132,19 @@ class Azericard
         return $this->order;
     }
 
-    public function refund(array $attributes): bool
+    public function refund(RefundData $refundData): bool
     {
-        foreach ($this->required_refund_keys as $key) {
-            if (empty($attributes[$key])) {
-                throw new ValidationException("Refund required $key key");
-            }
-        }
-
         $params[Options::AMOUNT] = (string)round($this->getAmount(), 2);
         $params[Options::CURRENCY] = $this->options->get(Options::CURRENCY, 'AZN');
         $params[Options::ORDER] = $this->getOrderId();
-        $params[Options::RRN] = $attributes[Options::RRN];
-        $params[Options::INT_REF] = $attributes[Options::INT_REF];
+        $params[Options::RRN] = $refundData->rrn;
+        $params[Options::INT_REF] = $refundData->int_ref;
         $params[Options::TERMINAL] = $this->options->get(Options::TERMINAL);
         $params[Options::TRTYPE] = Options::REFUND_ORDER_TR_TYPE;
         $params[Options::TIMESTAMP] = $this->options->get(Options::TIMESTAMP);
         $params[Options::NONCE] = $this->options->get(Options::NONCE);
 
-        if (Carbon::parse($attributes[Options::CREATED_AT])->addDay()->isPast()) {
+        if (Carbon::parse($refundData->created_at)->addDay()->isPast()) {
             $params[Options::TRTYPE] = '24';
         }
 
