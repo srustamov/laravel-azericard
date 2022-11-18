@@ -54,6 +54,7 @@ use Srustamov\Azericard\Exceptions\AzericardException;
 use Illuminate\Support\Facades\DB;
 use App\Models\Payment\Transaction;
 use Srustamov\Azericard\Options;
+use Srustamov\Azericard\RefundData;
 
 class AzericardController extends Controller
 {
@@ -158,15 +159,15 @@ class AzericardController extends Controller
         
         try
         {
-            $data = [
-                Options::RRN => $transaction->rrn,
-                Options::INT_REF => $transaction->int_ref,
-                Options::CREATED_AT => $transaction->process_at,
-            ];
-  
             $order = Transaction::createForRefund(
                 amount : $amount = $request->post('amount'), 
                 parent_id: $transaction->id
+            );
+            
+            $data = new RefundData(
+                rrn: $transaction->rrn,
+                int_ref: $transaction->int_ref,
+                created_at: $transaction->process_at
             );
 
             if ($azericard->setAmount($amount)->setOrder($order->id)->refund($data)) {

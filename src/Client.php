@@ -17,6 +17,8 @@ class Client implements ClientContract
 
     protected static bool $fake = false;
 
+    protected ?string $response = null;
+
     public static function fake()
     {
         static::$fake = true;
@@ -27,43 +29,70 @@ class Client implements ClientContract
         return $this->debug ? $this->urls['test'] : $this->urls['production'];
     }
 
-    public function setDebug(bool $debug): self
+    public function setDebug(bool $debug): static
     {
         $this->debug = $debug;
 
         return $this;
     }
 
-    public function createRefund($params): bool|string
+    public function createRefund($params):static
     {
         return $this->sendRequest($params);
     }
 
 
-    public function completeOrder($params): string
+    public function completeOrder($params) : static
     {
         return $this->sendRequest($params);
     }
 
-    protected function sendRequest(array $params = []): string
+    public function getResponse(): ?string
+    {
+        return $this->response;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->response === Options::RESPONSE_CODES['SUCCESS'];
+    }
+
+    public function isDuplicate(): bool
+    {
+        return $this->response === Options::RESPONSE_CODES['DUPLICATE'];
+    }
+
+    protected function sendRequest(array $params = []): static
     {
         if (static::$fake) {
-            return Options::RESPONSE_CODES["SUCCESS"];
+
+            $this->response = Options::RESPONSE_CODES["SUCCESS"];
+
+            return $this;
         }
 
         $response = Http::withoutVerifying()
-            ->timeout(120)
+            ->timeout(10)
             ->asForm()
             ->post($this->getUrl(), $params);
 
         if ($response->successful()) {
-            return $response->body();
+
+            $this->response = $response->body();
+
+            return $this;
         }
 
         throw new ClientException(
             $response->toException()->getMessage(),
             $response->toException()->getCode(),
         );
+    }
+
+
+    public function __toString(): string
+    {
+        return $this->response ?? '';
     }
 
 }

@@ -150,13 +150,11 @@ class Azericard
 
         $params[Options::P_SIGN] = $this->signatureGenerator->generatePSignForRefund($params);
 
-        $content = $this->client->createRefund($params);
-
-        if ($content === Options::RESPONSE_CODES['SUCCESS']) {
+        if ($this->client->createRefund($params)->isApproved()) {
             return true;
         }
 
-        throw new FailedTransactionException($content, $params);
+        throw new FailedTransactionException($this->client->getResponse(), $params);
     }
 
     /**
@@ -197,13 +195,11 @@ class Azericard
 
         $params[Options::P_SIGN] = $this->signatureGenerator->getPSignForCompleteOrder($params);
 
-        $content = $this->client->completeOrder($params);
-
-        if ($content === Options::RESPONSE_CODES['SUCCESS']) {
+        if ($this->client->completeOrder($params)->isApproved()) {
             return true;
         }
 
-        throw new FailedTransactionException($content, $request);
+        throw new FailedTransactionException($this->client->getResponse(), $request);
     }
 
     public function setOrder(string $order): static

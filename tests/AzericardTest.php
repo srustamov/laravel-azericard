@@ -6,6 +6,7 @@ use Srustamov\Azericard\Client;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 use Srustamov\Azericard\Facade\Azericard;
 use Srustamov\Azericard\Options;
+use Srustamov\Azericard\RefundData;
 
 class AzericardTest extends TestCase
 {
@@ -58,11 +59,13 @@ class AzericardTest extends TestCase
     {
         Client::fake();
 
-        $refund = Azericard::setOrder("000002")->setAmount(100)->refund([
-            Options::RRN        => "465854346234784",
-            Options::INT_REF    => "...",
-            Options::CREATED_AT => now(),
-        ]);
+        $data = new RefundData(
+            rrn: "465854346234784",
+            int_ref: "4u9078u4",
+            created_at: now()
+        );
+
+        $refund = Azericard::setOrder("000002")->setAmount(100)->refund($data);
 
         $this->assertTrue($refund);
     }
