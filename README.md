@@ -1,7 +1,9 @@
 # Azericard Payment Package for Laravel
 
-[//]: # ([![Total Downloads]&#40;https://img.shields.io/packagist/dt/srustamov/laravel-azericard&#41;]&#40;https://packagist.org/packages/srustamov/laravel-azericard&#41;)
 [![GitHub license](https://img.shields.io/github/license/srustamov/laravel-azericard.svg)](https://github.com/srustamov/laravel-azericard/blob/master/LICENSE.md)
+<a href="https://packagist.org/packages/srustamov/laravel-azericard">
+<img src="https://img.shields.io/packagist/v/srustamov/laravel-azericard" alt="Latest Stable Version">
+</a>
 
 ## Requirements
 
@@ -59,11 +61,6 @@ use Srustamov\Azericard\RefundData;
 class AzericardController extends Controller
 {
 
-    /**
-     * @param Azericard $azericard
-     * @param Request $request
-     * @return mixed
-     */
     public function createOrder(Azericard $azericard, Request $request)
     {
         $order = auth()->user()->transactions()->create([
@@ -77,7 +74,7 @@ class AzericardController extends Controller
 
         $formParams = $azericard->setOrder($order->id)
             ->setAmount($order->amount)
-            ->setMerchantUrl("/azericard/result/{$order}")
+            ->setMerchantUrl(route('azericard.result',['order' => $order])
             //->debug($request->has('test'))
             ->createOrder();
 
@@ -85,15 +82,11 @@ class AzericardController extends Controller
     }
 
 
-    /**
-     * @param Azericard $azericard
-     * @param Request $request
-     */
     public function callback(Azericard $azericard, Request $request)
     {
        $transaction = Trasaction::findByAzericard($request->get(Options::ORDER));
        
-       if($transaction->status !== Trasaction::PENDING){
+       if(!$transaction->isPending()){
            return response()->json(['message' => 'Order already processed'], 409);
        }
        
@@ -104,13 +97,13 @@ class AzericardController extends Controller
             if ($azericard->completeOrder($request->all())) 
             {
                 $transaction->update([
-                    'status' => Trasaction::SUCCESS,
-                    'rrn'    => $request->get(Options::RRN),
+                    'status'     => Trasaction::SUCCESS,
+                    'rrn'        => $request->get(Options::RRN),
+                    'int_ref'    => $request->get(Options::RRN),
                     'process_at' => now(),
                 ]); 
                 
-                //do something
-                //$transaction->user->increment('balance', $transaction->amount);
+                $transaction->user->increment('balance', $transaction->amount);
                 
                 DB::commit();
                 
@@ -150,9 +143,6 @@ class AzericardController extends Controller
         }
     }
     
-    /**
-     * @param Azericard $azericard
-     */
     public function refund(Request $request,Azericard $azericard)
     {
         $transaction = Trasaction::findOrFail($request->post('transaction_id'));
@@ -188,19 +178,17 @@ class AzericardController extends Controller
     }
 
 
-    /**
-     * @param $orderId
-     */
     public function result($orderId)
     {
-        /*
-        if (statement) {
-            return view('payment-success');
+        $transaction = Transaction::findByAzericard($orderId);
+        
+        if($transaction->isSuccess()){
+            return view('payment.success');
+        } elseif ($transaction->isPending()){
+            return view('payment.pending');
         }
-
-        return view('payment-failed');
-
-       */
+        
+        return view('payment.failed');
     }
 }
 
