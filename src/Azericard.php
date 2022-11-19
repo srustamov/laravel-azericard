@@ -84,11 +84,17 @@ class Azericard
 
     public function createOrder(): array
     {
+        event(new Events\OrderCreating(
+            orderId: $this->getOrderId(),
+            amount: $this->getAmount(),
+            azericard: $this,
+        ));
+
         if (!$this->getAmount() || !$this->getOrderId()) {
             throw new ValidationException('Payment required amount and order');
         }
 
-        return [
+        $data =  [
             "action" => $this->client->getUrl(),
             'method' => 'POST',
             "inputs" => array_merge(
@@ -113,6 +119,12 @@ class Azericard
             ),
             ...$this->appends,
         ];
+
+        event(new Events\OrderCreated(
+            data: $data
+        ));
+
+        return $data;
     }
 
     public function getAmount(): float|int
@@ -151,6 +163,12 @@ class Azericard
         $params[Options::P_SIGN] = $this->signatureGenerator->generatePSignForRefund($params);
 
         if ($this->client->createRefund($params)->isApproved()) {
+
+            event(new Events\OrderRefunded(
+                data: $params,
+                response: $this->client->getResponse(),
+            ));
+
             return true;
         }
 
@@ -196,6 +214,13 @@ class Azericard
         $params[Options::P_SIGN] = $this->signatureGenerator->getPSignForCompleteOrder($params);
 
         if ($this->client->completeOrder($params)->isApproved()) {
+
+            event(new Events\OrderCompleted(
+                request: $request,
+                data: $params,
+                response: $this->client->getResponse()
+            ));
+
             return true;
         }
 

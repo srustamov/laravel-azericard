@@ -2,8 +2,13 @@
 
 namespace Srustamov\Azericard\Tests;
 
+use Illuminate\Support\Facades\Event;
 use Srustamov\Azericard\Client;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
+use Srustamov\Azericard\Events\OrderCompleted;
+use Srustamov\Azericard\Events\OrderCreated;
+use Srustamov\Azericard\Events\OrderCreating;
+use Srustamov\Azericard\Events\OrderRefunded;
 use Srustamov\Azericard\Facade\Azericard;
 use Srustamov\Azericard\Options;
 use Srustamov\Azericard\RefundData;
@@ -16,6 +21,15 @@ class AzericardTest extends TestCase
     {
         $azericard = Azericard::setAmount(100)->setOrder('000001')->setDebug(false);
 
+        Event::listen(OrderCreating::class, function (OrderCreating $event) {
+            $this->assertEquals('000001', $event->orderId);
+            $this->assertEquals(100, $event->amount);
+        });
+
+        Event::listen(OrderCreated::class, function (OrderCreated $event) {
+            $this->assertEquals(100, $event->data['inputs'][Options::AMOUNT]);
+        });
+
         $params = $azericard->createOrder();
 
         $this->assertEquals('000001', $params['inputs'][Options::ORDER]);
@@ -26,6 +40,10 @@ class AzericardTest extends TestCase
     public function test_complete()
     {
         Client::fake();
+
+        Event::listen(OrderCompleted::class, function (OrderCompleted $event) {
+            $this->assertEquals($event->response, Options::RESPONSE_CODES['SUCCESS']);
+        });
 
         $data = [
             Options::ACTION   => Options::RESPONSE_CODES['SUCCESS'],
@@ -58,6 +76,10 @@ class AzericardTest extends TestCase
     public function test_refund()
     {
         Client::fake();
+
+        Event::listen(OrderRefunded::class, function (OrderRefunded $event) {
+            $this->assertEquals("000002", $event->data[Options::ORDER]);
+        });
 
         $data = new RefundData(
             rrn: "465854346234784",
