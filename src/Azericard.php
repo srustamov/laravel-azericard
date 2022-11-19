@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Traits\Conditionable;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
+use Srustamov\Azericard\DataProviders\RefundData;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
 use Srustamov\Azericard\Exceptions\SignatureDoesNotMatchException;
 use Srustamov\Azericard\Exceptions\ValidationException;

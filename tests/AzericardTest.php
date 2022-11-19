@@ -5,13 +5,13 @@ namespace Srustamov\Azericard\Tests;
 use Illuminate\Support\Facades\Event;
 use Srustamov\Azericard\Client;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
+use Srustamov\Azericard\DataProviders\RefundData;
 use Srustamov\Azericard\Events\OrderCompleted;
 use Srustamov\Azericard\Events\OrderCreated;
 use Srustamov\Azericard\Events\OrderCreating;
 use Srustamov\Azericard\Events\OrderRefunded;
 use Srustamov\Azericard\Facade\Azericard;
 use Srustamov\Azericard\Options;
-use Srustamov\Azericard\RefundData;
 
 class AzericardTest extends TestCase
 {

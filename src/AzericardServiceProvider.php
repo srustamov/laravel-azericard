@@ -25,8 +25,8 @@ class AzericardServiceProvider extends ServiceProvider
             return new Client();
         });
 
-        $this->app->bind(SignatureGeneratorContract::class, static function () {
-            return new SignatureGenerator(config('azericard.keys', []));
+        $this->app->singleton(SignatureGeneratorContract::class, static function () {
+            return new SignatureGenerator(app('config')->get('azericard.keys', []));
         });
 
         $this->app->bind(Azericard::class, static function () {

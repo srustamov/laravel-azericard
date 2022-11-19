@@ -1,6 +1,6 @@
 <?php
 
-namespace Srustamov\Azericard;
+namespace Srustamov\Azericard\DataProviders;
 
 use Carbon\CarbonInterface;
 use DateTimeInterface;

@@ -37,6 +37,8 @@ php artisan vendor:publish --provider="Srustamov\Azericard\AzericardServiceProvi
 
 ## Example
 
+
+### Routes
 ```php
 // routes
 Route::prefix('azericard')->group(function () {
@@ -44,21 +46,20 @@ Route::prefix('azericard')->group(function () {
     Route::post('/callback',[\App\Http\Controllers\AzericardController::class,'callback']);
     Route::get('/result/{orderId}',[\App\Http\Controllers\AzericardController::class,'result']);
 });
+```
 
-
-//controller
-
-use Exception;
-use Illuminate\Http\Request;
-use Srustamov\Azericard\Azericard;
-use Srustamov\Azericard\Exceptions\FailedTransactionException;
-use Srustamov\Azericard\Exceptions\AzericardException;
-use Illuminate\Support\Facades\DB;
+### Controller
+```php
 use App\Models\Payment\Transaction;
-use Srustamov\Azericard\Options;
-use Srustamov\Azericard\RefundData;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Srustamov\Azericard\Azericard;
+use Srustamov\Azericard\DataProviders\RefundData;
 use Srustamov\Azericard\Events\OrderCompleted;
+use Srustamov\Azericard\Exceptions\AzericardException;
+use Srustamov\Azericard\Exceptions\FailedTransactionException;
+use Srustamov\Azericard\Options;
 
 class AzericardController extends Controller
 {
@@ -202,6 +203,12 @@ class AzericardController extends Controller
     }
 }
 
+```
+
+## Testing
+
+```bash
+composer test
 ```
 
 ## License

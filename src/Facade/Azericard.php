@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Facade;
 use Srustamov\Azericard\Options;
 
 /**
- * @package Srustamov\Azericard\Facade
- *
  * @method static \Srustamov\Azericard\Azericard setAmount(float|int $amount)
  * @method static \Srustamov\Azericard\Azericard setOrder(string $order)
  * @method static \Srustamov\Azericard\Azericard setDebug(bool $debug)
