@@ -57,9 +57,19 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Payment\Transaction;
 use Srustamov\Azericard\Options;
 use Srustamov\Azericard\RefundData;
+use Illuminate\Support\Facades\Event;
+use Srustamov\Azericard\Events\OrderCompleted;
 
 class AzericardController extends Controller
 {
+    public function __construct() 
+    {
+        Event::listen(OrderCompleted::class, function (OrderCompleted $event) {
+            // do something
+            //example
+            logger()->info('Order completed', ['request' => $event->request]);
+        });
+    }
 
     public function createOrder(Azericard $azericard, Request $request)
     {
