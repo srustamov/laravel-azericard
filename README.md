@@ -110,7 +110,7 @@ class AzericardController extends Controller
                 $transaction->update([
                     'status'     => Trasaction::SUCCESS,
                     'rrn'        => $request->get(Options::RRN),
-                    'int_ref'    => $request->get(Options::RRN),
+                    'int_ref'    => $request->get(Options::INT_REF),
                     'process_at' => now(),
                 ]); 
                 
