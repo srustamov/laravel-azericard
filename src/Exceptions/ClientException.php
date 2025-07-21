@@ -2,6 +2,8 @@
 
 namespace Srustamov\Azericard\Exceptions;
 
-class ClientException extends \RuntimeException
+use RuntimeException;
+
+class ClientException extends RuntimeException
 {
 }

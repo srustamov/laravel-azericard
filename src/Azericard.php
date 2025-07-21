@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Srustamov\Azericard;
 
+use Throwable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Traits\Conditionable;
-use Srustamov\Azericard\Contracts\ClientContract;
-use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 use Srustamov\Azericard\DataProviders\RefundData;
+use Srustamov\Azericard\Contracts\ClientContract;
+use Srustamov\Azericard\Exceptions\ValidationException;
+use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 use Srustamov\Azericard\Exceptions\FailedTransactionException;
 use Srustamov\Azericard\Exceptions\SignatureDoesNotMatchException;
-use Srustamov\Azericard\Exceptions\ValidationException;
-use Throwable;
 
 
 class Azericard
@@ -28,10 +28,11 @@ class Azericard
     protected int|float $amount = 0;
 
     public function __construct(
-        private ClientContract $client,
+        private ClientContract             $client,
         private SignatureGeneratorContract $signatureGenerator,
-        Options $options
-    ) {
+        Options                            $options
+    )
+    {
         $this->setOptions($options);
     }
 
@@ -95,26 +96,26 @@ class Azericard
             throw new ValidationException('Payment required amount and order');
         }
 
-        $data =  [
+        $data = [
             "action" => $this->client->getUrl(),
             'method' => 'POST',
             "inputs" => array_merge(
                 $params = [
-                    Options::AMOUNT     => $this->getAmount(),
-                    Options::ORDER      => $this->getOrderId(),
-                    Options::CURRENCY   => $this->options->get(Options::CURRENCY, 'AZN'),
-                    Options::DESC       => $this->options->get(Options::DESC),
+                    Options::AMOUNT => $this->getAmount(),
+                    Options::ORDER => $this->getOrderId(),
+                    Options::CURRENCY => $this->options->get(Options::CURRENCY, 'AZN'),
+                    Options::DESC => $this->options->get(Options::DESC),
                     Options::MERCH_NAME => $this->options->get(Options::MERCH_NAME),
-                    Options::MERCH_URL  => $this->options->get(Options::MERCH_URL),
-                    Options::TERMINAL   => $this->options->get(Options::TERMINAL),
-                    Options::EMAIL      => $this->options->get(Options::EMAIL),
-                    Options::TRTYPE     => $this->options->get(Options::TRTYPE),
-                    Options::COUNTRY    => $this->options->get(Options::COUNTRY),
-                    Options::MERCH_GMT  => $this->options->get(Options::MERCH_GMT),
-                    Options::TIMESTAMP  => $this->options->get(Options::TIMESTAMP),
-                    Options::NONCE      => $this->options->get(Options::NONCE),
-                    Options::BACKREF    => $this->options->get(Options::BACKREF),
-                    Options::LANG       => $this->options->get(Options::LANG),
+                    Options::MERCH_URL => $this->options->get(Options::MERCH_URL),
+                    Options::TERMINAL => $this->options->get(Options::TERMINAL),
+                    Options::EMAIL => $this->options->get(Options::EMAIL),
+                    Options::TRTYPE => $this->options->get(Options::TRTYPE),
+                    Options::COUNTRY => $this->options->get(Options::COUNTRY),
+                    Options::MERCH_GMT => $this->options->get(Options::MERCH_GMT),
+                    Options::TIMESTAMP => $this->options->get(Options::TIMESTAMP),
+                    Options::NONCE => $this->options->get(Options::NONCE),
+                    Options::BACKREF => $this->options->get(Options::BACKREF),
+                    Options::LANG => $this->options->get(Options::LANG),
                 ],
                 [Options::P_SIGN => $this->signatureGenerator->getPSignForCreateOrder($params)],
             ),

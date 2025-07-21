@@ -9,19 +9,28 @@ use Srustamov\Azericard\Exceptions\ClientException;
 class Client implements ClientContract
 {
     protected array $urls = [
-        'test'       => 'https://testmpi.3dsecure.az/cgi-bin/cgi_link',
+        'test' => 'https://testmpi.3dsecure.az/cgi-bin/cgi_link',
         'production' => 'https://mpi.3dsecure.az/cgi-bin/cgi_link',
     ];
 
     protected bool $debug = false;
 
-    protected static bool $fake = false;
-
     protected ?string $response = null;
 
-    public static function fake()
+    public static function fake(): void
     {
-        static::$fake = true;
+        Http::fake([
+            'https://testmpi.3dsecure.az/cgi-bin/cgi_link' => Http::response(
+                Options::RESPONSE_CODES['SUCCESS'],
+                200,
+                ['Content-Type' => 'text/plain']
+            ),
+            'https://mpi.3dsecure.az/cgi-bin/cgi_link' => Http::response(
+                Options::RESPONSE_CODES['SUCCESS'],
+                200,
+                ['Content-Type' => 'text/plain']
+            ),
+        ]);
     }
 
     public function getUrl(): string
@@ -36,13 +45,13 @@ class Client implements ClientContract
         return $this;
     }
 
-    public function createRefund($params):static
+    public function createRefund($params): static
     {
         return $this->sendRequest($params);
     }
 
 
-    public function completeOrder($params) : static
+    public function completeOrder($params): static
     {
         return $this->sendRequest($params);
     }
@@ -64,13 +73,6 @@ class Client implements ClientContract
 
     protected function sendRequest(array $params = []): static
     {
-        if (static::$fake) {
-
-            $this->response = Options::RESPONSE_CODES["SUCCESS"];
-
-            return $this;
-        }
-
         $response = Http::withoutVerifying()
             ->timeout(10)
             ->asForm()
@@ -89,10 +91,8 @@ class Client implements ClientContract
         );
     }
 
-
     public function __toString(): string
     {
         return $this->response ?? '';
     }
-
 }

@@ -2,8 +2,8 @@
 
 namespace Srustamov\Azericard\Facade;
 
-use Illuminate\Support\Facades\Facade;
 use Srustamov\Azericard\Options;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \Srustamov\Azericard\Azericard setAmount(float|int $amount)

@@ -3,8 +3,8 @@
 namespace Srustamov\Azericard;
 
 
-use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 use Srustamov\Azericard\Exceptions\AzericardException;
+use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 
 class SignatureGenerator implements SignatureGeneratorContract
 {

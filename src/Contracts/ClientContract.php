@@ -1,6 +1,7 @@
 <?php
 
 namespace Srustamov\Azericard\Contracts;
+
 use Stringable;
 
 interface ClientContract extends Stringable

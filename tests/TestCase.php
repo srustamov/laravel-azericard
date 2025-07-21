@@ -39,7 +39,6 @@ abstract class TestCase extends Orchestra
 
     private function createKeys($privateKeyFile, $publicKeyFile): void
     {
-
         File::makeDirectory(dirname($privateKeyFile), 0755, true, true);
 
         openssl_pkey_export(

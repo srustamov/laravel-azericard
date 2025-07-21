@@ -23,8 +23,8 @@ return [
     Options::BACKREF  => '',
 
     'keys' => [
-        //it is required
-        //for example storage_path('secrets/private.pem')
+        //it is required,
+        //for example, storage_path('secrets/private.pem')
         SignatureGenerator::PRIVATE_KEY_NAME => 'private_key_file_path',
 
         //if you do not want to verify signature then set null

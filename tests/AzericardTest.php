@@ -2,21 +2,19 @@
 
 namespace Srustamov\Azericard\Tests;
 
+use Srustamov\Azericard\Options;
 use Illuminate\Support\Facades\Event;
-use Srustamov\Azericard\Client;
-use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
-use Srustamov\Azericard\DataProviders\RefundData;
-use Srustamov\Azericard\Events\OrderCompleted;
+use Srustamov\Azericard\Facade\Azericard;
 use Srustamov\Azericard\Events\OrderCreated;
 use Srustamov\Azericard\Events\OrderCreating;
 use Srustamov\Azericard\Events\OrderRefunded;
-use Srustamov\Azericard\Facade\Azericard;
-use Srustamov\Azericard\Options;
+use Srustamov\Azericard\Events\OrderCompleted;
+use Srustamov\Azericard\DataProviders\RefundData;
+use Srustamov\Azericard\Contracts\ClientContract;
+use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 
 class AzericardTest extends TestCase
 {
-
-
     public function test_form_params()
     {
         $azericard = Azericard::setAmount(100)->setOrder('000001')->setDebug(false);
@@ -39,20 +37,20 @@ class AzericardTest extends TestCase
 
     public function test_complete()
     {
-        Client::fake();
+        app(ClientContract::class)->fake();
 
         Event::listen(OrderCompleted::class, function (OrderCompleted $event) {
             $this->assertEquals($event->response, Options::RESPONSE_CODES['SUCCESS']);
         });
 
         $data = [
-            Options::ACTION   => Options::RESPONSE_CODES['SUCCESS'],
-            Options::ORDER    => "123456",
-            Options::AMOUNT   => 100,
+            Options::ACTION => Options::RESPONSE_CODES['SUCCESS'],
+            Options::ORDER => "123456",
+            Options::AMOUNT => 100,
             Options::CURRENCY => "AZN",
-            Options::TRTYPE   => "0",
-            Options::INT_REF  => "Test",
-            Options::RRN      => "Test",
+            Options::TRTYPE => "0",
+            Options::INT_REF => "Test",
+            Options::RRN => "Test",
             Options::TERMINAL => 23546576587,
         ];
 
@@ -75,7 +73,7 @@ class AzericardTest extends TestCase
 
     public function test_refund()
     {
-        Client::fake();
+        app(ClientContract::class)->fake();
 
         Event::listen(OrderRefunded::class, function (OrderRefunded $event) {
             $this->assertEquals("000002", $event->data[Options::ORDER]);
