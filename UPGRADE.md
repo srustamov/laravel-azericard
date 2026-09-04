@@ -5,7 +5,11 @@
 ### Requirements
 
 - PHP `^8.2` (was `>=8.0`)
-- Laravel `11.x`, `12.x` or `13.x`
+- Laravel `12.x` or `13.x`
+
+Laravel 11 is deliberately not supported. It has reached end of life and every
+11.x release is flagged by unpatched security advisories, so Composer will not
+install it.
 
 The package now depends on `illuminate/support`, `illuminate/http` and
 `illuminate/contracts` instead of the whole `laravel/framework`.

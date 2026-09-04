@@ -9,8 +9,11 @@
 
 | Package | PHP        | Laravel          |
 |---------|------------|------------------|
-| `^4.0`  | `^8.2`     | `11.x 12.x 13.x` |
+| `^4.0`  | `^8.2`     | `12.x 13.x`      |
 | `^3.0`  | `>=8.0`    | `10.x 11.x 12.x` |
+
+Laravel 11 is not supported: every 11.x release carries unpatched security
+advisories and Composer refuses to install it.
 | `^1.0`  | `<8.0`     | `< 8.x`          |
 
 ## Installation
