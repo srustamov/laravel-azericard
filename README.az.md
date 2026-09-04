@@ -1,46 +1,46 @@
-# Azericard Payment Package for Laravel
+# Laravel üçün Azericard ödəniş paketi
 
-**English** · [Azərbaycanca](README.az.md)
+[English](README.md) · **Azərbaycanca**
 
 [![GitHub license](https://img.shields.io/github/license/srustamov/laravel-azericard.svg)](https://github.com/srustamov/laravel-azericard/blob/master/LICENSE.md)
 <a href="https://packagist.org/packages/srustamov/laravel-azericard">
 <img src="https://img.shields.io/packagist/v/srustamov/laravel-azericard" alt="Latest Stable Version">
 </a>
 
-## Requirements
+## Tələblər
 
-| Package | PHP        | Laravel          |
+| Paket   | PHP        | Laravel          |
 |---------|------------|------------------|
 | `^4.0`  | `^8.2`     | `12.x 13.x`      |
 | `^3.0`  | `>=8.0`    | `10.x 11.x 12.x` |
 | `^1.0`  | `<8.0`     | `< 8.x`          |
 
-Laravel 11 is not supported: every 11.x release carries unpatched security
-advisories and Composer refuses to install it.
+Laravel 11 dəstəklənmir: bütün 11.x buraxılışları yamanmamış təhlükəsizlik
+advisory-ləri daşıyır və Composer onları quraşdırmaqdan imtina edir.
 
-## Installation
+## Quraşdırma
 
 ```bash
 composer require srustamov/laravel-azericard
 ```
 
-Publish the config file:
+Konfiqurasiya faylını dərc et:
 
 ```bash
 php artisan vendor:publish --tag="azericard-config"
 ```
 
-## Configuration
+## Konfiqurasiya
 
-Everything is driven by environment variables:
+Hər şey mühit dəyişənləri ilə idarə olunur:
 
 ```dotenv
 AZERICARD_DEBUG=true
 AZERICARD_TERMINAL=17200000
-AZERICARD_MERCH_NAME="My Shop"
+AZERICARD_MERCH_NAME="Mənim mağazam"
 AZERICARD_MERCH_URL="${APP_URL}"
 AZERICARD_MERCH_GMT="+4"
-AZERICARD_DESC="Online payment"
+AZERICARD_DESC="Onlayn ödəniş"
 AZERICARD_EMAIL="payment@example.az"
 AZERICARD_COUNTRY=AZ
 AZERICARD_LANG=AZ
@@ -51,17 +51,17 @@ AZERICARD_PRIVATE_KEY=/var/secrets/azericard/private.pem
 AZERICARD_PUBLIC_KEY=/var/secrets/azericard/public.pem
 ```
 
-Both key values accept either an absolute file path or the inline PEM contents,
-so keys can live in a secret manager instead of on disk.
+Hər iki açar həm mütləq fayl yolunu, həm də PEM məzmununun özünü qəbul edir —
+yəni açarları diskdə deyil, secret manager-də saxlaya bilərsən.
 
-> **Set `AZERICARD_PUBLIC_KEY`.** When it is empty the callback signature is
-> **not verified** and any caller who knows your callback URL can forge a
-> successful payment.
+> **`AZERICARD_PUBLIC_KEY` mütləq təyin et.** Boş olduqda callback imzası
+> **yoxlanmır** və callback ünvanını bilən istənilən şəxs uğurlu ödəniş
+> saxtalaşdıra bilər.
 
-`AZERICARD_VERIFY_SSL` defaults to `true` and should stay that way — this is a
-payment endpoint.
+`AZERICARD_VERIFY_SSL` defolt olaraq `true`-dur və elə də qalmalıdır — bu,
+ödəniş endpoint-idir.
 
-## Usage
+## İstifadə
 
 ```php
 use Srustamov\Azericard\Azericard;
@@ -73,7 +73,7 @@ $formParams = $azericard
     ->createOrder();
 ```
 
-`createOrder()` returns the payload for an auto-submitting form:
+`createOrder()` avtomatik göndərilən form üçün payload qaytarır:
 
 ```php
 [
@@ -83,17 +83,17 @@ $formParams = $azericard
 ]
 ```
 
-### Completing an order
+### Sifarişin tamamlanması
 
 ```php
-$azericard->completeOrder($request->all()); // true, or throws
+$azericard->completeOrder($request->all()); // true qaytarır, ya da exception atır
 ```
 
-### Refund and reversal
+### Geri qaytarma və ləğv
 
-Azericard has two reversal types: **22 (online)** while the transaction has not
-settled yet, and **24 (offline)** once it has. `refund()` picks between them with
-a 24-hour heuristic on `created_at`.
+Azericard-da iki ləğv növü var: tranzaksiya hələ hesablaşmadan (settlement)
+keçməyibsə **22 (online)**, keçibsə **24 (offline)**. `refund()` bu seçimi
+`created_at` üzərində 24 saatlıq heuristika ilə edir.
 
 ```php
 use Srustamov\Azericard\DataProviders\RefundData;
@@ -104,15 +104,15 @@ $data = new RefundData(
     created_at: $transaction->process_at,
 );
 
-// picks TRTYPE 22 (online, unsettled) or 24 (offline, settled) from the transaction age
+// tranzaksiyanın yaşına görə TRTYPE 22 (online) və ya 24 (offline) seçilir
 $azericard->setAmount($amount)->setOrder($order->id)->refund($data);
 
-// or decide yourself
+// və ya özün qərar ver
 $azericard->setAmount($amount)->setOrder($order->id)->refundOnline($data);  // TRTYPE 22
 $azericard->setAmount($amount)->setOrder($order->id)->refundOffline($data); // TRTYPE 24
 ```
 
-### Enums
+### Enum-lar
 
 ```php
 use Srustamov\Azericard\Enums\Language;
@@ -121,25 +121,26 @@ use Srustamov\Azericard\Enums\TransactionType;
 
 $azericard->setLanguage(Language::En);
 
-TransactionType::CompleteOrder->value;  // 21
-TransactionType::OnlineReversal->value;  // 22
-TransactionType::OfflineReversal->value; // 24
+TransactionType::CompleteOrder->value;    // 21
+TransactionType::OnlineReversal->value;   // 22
+TransactionType::OfflineReversal->value;  // 24
 TransactionType::RecurringPayment->value; // 3
 ResponseCode::tryFrom($code)?->isApproved();
 ```
 
-### Card storage and recurring payments
+### Kart saxlama və təkrarlanan ödənişlər
 
-All token flows post to `/token/cgi_link` and are reached through `token()`.
+Bütün token axınları `/token/cgi_link` ünvanına gedir və `token()` vasitəsilə
+əlçatandır.
 
-**Store a card while taking a payment** (spec 6.1) — render the returned payload
-as a form, exactly like `createOrder()`:
+**Ödəniş zamanı kartı saxla** (spesifikasiya 6.1) — qayıdan payload-u
+`createOrder()`-dəki kimi form şəklində render et:
 
 ```php
 $payload = $azericard->setOrder($order->id)->setAmount(0.01)->token()->store();
 ```
 
-The callback then carries `TOKEN` and `CARD` alongside the usual fields:
+Callback adi sahələrlə birlikdə `TOKEN` və `CARD` gətirir:
 
 ```php
 use Srustamov\Azericard\DataProviders\TokenCallback;
@@ -149,29 +150,29 @@ $azericard->completeOrder($request->all());
 $callback = TokenCallback::from($request->all());
 
 $user->update([
-    'azericard_token' => $callback->token,   // 28 chars
-    'azericard_card' => $callback->card,     // masked PAN
+    'azericard_token' => $callback->token,   // 28 simvol
+    'azericard_card' => $callback->card,     // maskalanmış kart nömrəsi
 ]);
 ```
 
-**Pay with a stored card** (spec 6.2 / 6.3):
+**Saxlanmış kartla ödəniş** (spesifikasiya 6.2 / 6.3):
 
 ```php
 $azericard->setOrder($order->id)->setAmount(25)->token()->pay($token);
 $azericard->setOrder($order->id)->setAmount(25)->token()->payAsCardholder($token); // CIT
 ```
 
-**Recurring — registration** (spec 7.1 / 7.3). Both return a form payload; the
-callback additionally carries `EXT_NET_REF`, which you must store next to the
-token:
+**Təkrarlanan ödəniş — qeydiyyat** (spesifikasiya 7.1 / 7.3). Hər ikisi form
+payload qaytarır; callback əlavə olaraq `EXT_NET_REF` gətirir və onu token-in
+yanında saxlamalısan:
 
 ```php
 use Srustamov\Azericard\DataProviders\RecurringData;
 
-// unscheduled MIT (MIT_AGREEMENT=N)
+// cədvəlsiz MIT (MIT_AGREEMENT=N)
 $azericard->setOrder($order->id)->setAmount(0.01)->token()->registerUnscheduled();
 
-// scheduled MIT (MIT_AGREEMENT=Y)
+// cədvəlli MIT (MIT_AGREEMENT=Y)
 $azericard->setOrder($order->id)->setAmount(0.01)->token()->registerScheduled(
     new RecurringData(frequency: 30, expiresAt: '2027-12-31')
 );
@@ -185,53 +186,53 @@ $subscription->update([
     'ext_net_ref' => $callback->extNetRef,
 ]);
 
-$callback->isRecurringEnabled(); // token + ext_net_ref both present
+$callback->isRecurringEnabled(); // token və ext_net_ref hər ikisi mövcuddur
 ```
 
-**Recurring — charging.** These are merchant initiated, so there is no browser
-redirect: they are sent server to server and return `bool` (or throw
-`FailedTransactionException`):
+**Təkrarlanan ödəniş — məbləğin silinməsi.** Bunları merchant başladır, yəni
+brauzer yönləndirməsi yoxdur: server-to-server göndərilir və `bool` qaytarır
+(ya da `FailedTransactionException` atır):
 
 ```php
-// unscheduled MIT charge (TRTYPE 1, MERCH_TRAN_STATE=M)
+// cədvəlsiz MIT ödənişi (TRTYPE 1, MERCH_TRAN_STATE=M)
 $azericard->setOrder($order->id)->setAmount(25)
     ->token()->chargeUnscheduled($token, $extNetRef);
 
-// scheduled recurring charge (TRTYPE 3)
+// cədvəlli təkrarlanan ödəniş (TRTYPE 3)
 $azericard->setOrder($order->id)->setAmount(25)
     ->token()->chargeScheduled($token, $extNetRef);
 ```
 
-A successful charge dispatches `TokenCharged`.
+Uğurlu ödəniş `TokenCharged` event-i göndərir.
 
-> **Production token endpoint.** The published specification only documents the
-> test URL (`https://testmpi.3dsecure.az/token/cgi_link`). This package assumes
-> the production URL follows the same pattern
-> (`https://mpi.3dsecure.az/token/cgi_link`) — confirm it with the bank before
-> going live.
+> **Production token endpoint-i.** Dərc olunmuş spesifikasiya yalnız test
+> ünvanını göstərir (`https://testmpi.3dsecure.az/token/cgi_link`). Bu paket
+> production ünvanının eyni naxışı izlədiyini fərz edir
+> (`https://mpi.3dsecure.az/token/cgi_link`) — istismara buraxmazdan əvvəl banka
+> təsdiqlət.
 
-### Events
+### Event-lər
 
-| Event            | Dispatched                                        |
-|------------------|---------------------------------------------------|
-| `OrderCreating`  | before the payment form payload is signed         |
-| `OrderCreated`   | after the payload is built                        |
-| `OrderCompleted` | after a successful capture (TRTYPE 21)            |
-| `OrderRefunded`  | after a successful reversal (TRTYPE 22/24)        |
-| `TokenCharged`   | after a successful MIT charge (TRTYPE 1/3)        |
+| Event            | Nə vaxt göndərilir                                  |
+|------------------|-----------------------------------------------------|
+| `OrderCreating`  | ödəniş formunun payload-u imzalanmazdan əvvəl        |
+| `OrderCreated`   | payload qurulduqdan sonra                            |
+| `OrderCompleted` | uğurlu tamamlamadan sonra (TRTYPE 21)                |
+| `OrderRefunded`  | uğurlu ləğvdən sonra (TRTYPE 22/24)                  |
+| `TokenCharged`   | uğurlu MIT ödənişindən sonra (TRTYPE 1/3)            |
 
-### Long-running workers
+### Uzunömürlü işçi proseslər
 
-`TIMESTAMP` and `NONCE` are generated when the instance is resolved. Under
-Octane or in a queue worker, refresh them before each transaction:
+`TIMESTAMP` və `NONCE` instansiya yaradılarkən generasiya olunur. Octane-də və
+ya queue worker-də hər tranzaksiyadan əvvəl onları yenilə:
 
 ```php
 $azericard->refresh();
 ```
 
-## Example
+## Nümunə
 
-### Routes
+### Route-lar
 
 ```php
 Route::prefix('azericard')->group(function () {
@@ -279,7 +280,7 @@ class AzericardController extends Controller
         $transaction = Transaction::findByAzericard($request->get(Options::ORDER));
 
         if (! $transaction->isPending()) {
-            return response()->json(['message' => 'Order already processed'], 409);
+            return response()->json(['message' => 'Sifariş artıq emal olunub'], 409);
         }
 
         DB::beginTransaction();
@@ -298,13 +299,13 @@ class AzericardController extends Controller
 
             DB::commit();
 
-            return response()->json(['message' => 'Order processed successfully']);
+            return response()->json(['message' => 'Sifariş uğurla emal olundu']);
         } catch (SignatureDoesNotMatchException $e) {
             DB::rollBack();
 
-            logger()->critical('Azericard forged callback', $request->all());
+            logger()->critical('Azericard saxta callback', $request->all());
 
-            return response()->json(['message' => 'Invalid signature'], 403);
+            return response()->json(['message' => 'Yanlış imza'], 403);
         } catch (FailedTransactionException $e) {
             DB::rollBack();
 
@@ -312,7 +313,7 @@ class AzericardController extends Controller
 
             logger()->error('Azericard | ' . $e->getMessage(), $e->getParams());
 
-            return response()->json(['message' => 'Order processing failed'], 422);
+            return response()->json(['message' => 'Sifarişin emalı uğursuz oldu'], 422);
         } catch (AzericardException $e) {
             DB::rollBack();
 
@@ -353,16 +354,16 @@ class AzericardController extends Controller
 }
 ```
 
-## Testing
+## Testlər
 
-Fake the gateway so nothing leaves your test suite:
+Şlüzü fake et ki, test zamanı heç bir sorğu bayıra çıxmasın:
 
 ```php
 use Srustamov\Azericard\Client;
 use Srustamov\Azericard\Enums\ResponseCode;
 
-Client::fake();                              // approves everything
-Client::fake(ResponseCode::WrongParameter);  // declines everything
+Client::fake();                              // hər şeyi təsdiqləyir
+Client::fake(ResponseCode::WrongParameter);  // hər şeyi rədd edir
 ```
 
 ```bash
@@ -371,15 +372,15 @@ composer analyse
 composer rector
 ```
 
-## Upgrading
+## Yeniləmə
 
-See [UPGRADE.md](UPGRADE.md) for the 3.x → 4.0 migration.
+3.x → 4.0 keçidi üçün [UPGRADE.md](UPGRADE.md) faylına bax.
 
-## Credits
+## Müəlliflər
 
 - [Samir Rustamov](https://github.com/srustamov)
 - [Azericard](https://developer.azericard.com/)
 
-## License
+## Lisenziya
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+MIT lisenziyası (MIT). Ətraflı məlumat üçün [lisenziya faylına](LICENSE.md) bax.
