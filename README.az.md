@@ -30,6 +30,47 @@ Konfiqurasiya faylını dərc et:
 php artisan vendor:publish --tag="azericard-config"
 ```
 
+## Açarların yaradılması
+
+Azericard PEM formatında RSA 2048 açar cütü tələb edir. Paketin bunu yaradan
+command-i var:
+
+```bash
+php artisan azericard:keys
+```
+
+`storage/app/azericard` qovluğuna `<merchant>_private_key.pem` (`0600` rejimi)
+və `<merchant>_public_key.pem` yazır. Seçimlər:
+
+| Seçim      | Defolt                     | Təyinatı                            |
+|------------|----------------------------|-------------------------------------|
+| `--path=`  | `storage/app/azericard`    | Çıxış qovluğu                       |
+| `--name=`  | konfiqurasiyadakı `MERCH_NAME` | Fayl adı prefiksi               |
+| `--bits=`  | `2048`                     | Açar ölçüsü, minimum 2048           |
+| `--force`  | —                          | Mövcud açarları əvəz edir, əvvəlcə soruşur |
+
+Üç açar var və onları qarışdırmaq asandır:
+
+| Açar                  | Kim yaradır | Hara gedir                                |
+|-----------------------|-------------|-------------------------------------------|
+| Merchant private      | sən         | `AZERICARD_PRIVATE_KEY`, sorğuları imzalayır |
+| Merchant public       | sən         | **Azericard-a göndərilir**                |
+| Azericard public      | bank        | `AZERICARD_PUBLIC_KEY`, callback-i yoxlayır |
+
+Bu command-in yaratdığı public açar `AZERICARD_PUBLIC_KEY`-ə **yazılmır** — o
+dəyişəndə Azericard-ın sənə verdiyi açar durur.
+
+> Azericard sənin public açarını qeydiyyata aldıqdan sonra cütü yenidən
+> yaratsan, bütün sorğular imza yoxlamasından keçməyəcək. `--force` üzərinə
+> yazmazdan əvvəl təsdiq soruşur.
+
+Əl ilə etmək istəsən, ekvivalent openssl əmrləri:
+
+```bash
+openssl genrsa -out merchant_private_key.pem 2048
+openssl rsa -in merchant_private_key.pem -pubout -out merchant_public_key.pem
+```
+
 ## Konfiqurasiya
 
 Hər şey mühit dəyişənləri ilə idarə olunur:

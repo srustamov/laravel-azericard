@@ -30,6 +30,47 @@ Publish the config file:
 php artisan vendor:publish --tag="azericard-config"
 ```
 
+## Generating the keys
+
+Azericard requires an RSA 2048 key pair in PEM format. The package ships a
+command that creates one:
+
+```bash
+php artisan azericard:keys
+```
+
+It writes `<merchant>_private_key.pem` (mode `0600`) and
+`<merchant>_public_key.pem` into `storage/app/azericard`. Options:
+
+| Option     | Default                    | Purpose                          |
+|------------|----------------------------|----------------------------------|
+| `--path=`  | `storage/app/azericard`    | Output directory                 |
+| `--name=`  | configured `MERCH_NAME`    | File name prefix                 |
+| `--bits=`  | `2048`                     | Key size, 2048 is the minimum    |
+| `--force`  | —                          | Replace existing keys, asks first |
+
+Three keys are involved and they are easy to mix up:
+
+| Key                    | Who makes it | Where it goes                        |
+|------------------------|--------------|--------------------------------------|
+| Merchant private       | you          | `AZERICARD_PRIVATE_KEY`, signs requests |
+| Merchant public        | you          | **sent to Azericard**                |
+| Azericard public       | the bank     | `AZERICARD_PUBLIC_KEY`, verifies callbacks |
+
+The public key this command generates does **not** go into
+`AZERICARD_PUBLIC_KEY` — that variable holds the key Azericard gives you.
+
+> Once Azericard has registered your public key, regenerating the pair makes
+> every request fail signature verification. `--force` asks for confirmation
+> before overwriting.
+
+The equivalent openssl commands, if you would rather run them by hand:
+
+```bash
+openssl genrsa -out merchant_private_key.pem 2048
+openssl rsa -in merchant_private_key.pem -pubout -out merchant_public_key.pem
+```
+
 ## Configuration
 
 Everything is driven by environment variables:

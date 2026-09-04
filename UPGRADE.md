@@ -95,6 +95,9 @@ either a file path or inline PEM contents.
 - `FailedTransactionException::getResponseCode()`.
 - Configurable `timeout`, `retry_times`, `retry_sleep`, `verify_ssl`.
 - Full `env()` support in the config file.
+- `php artisan azericard:keys` generates the RSA 2048 merchant key pair, writes
+  the private key with mode `0600`, and refuses to overwrite an existing pair
+  without `--force` plus a confirmation.
 - **Card storage and recurring payments** (specification sections 6 and 7) via
   `$azericard->token()`: `store()`, `pay()`, `payAsCardholder()`,
   `registerUnscheduled()`, `registerScheduled()`, `chargeUnscheduled()` and

@@ -6,6 +6,7 @@ namespace Srustamov\Azericard;
 
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\ServiceProvider;
+use Srustamov\Azericard\Console\GenerateKeysCommand;
 use Srustamov\Azericard\Contracts\ClientContract;
 use Srustamov\Azericard\Contracts\SignatureGeneratorContract;
 
@@ -43,6 +44,8 @@ class AzericardServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../config/azericard.php' => config_path('azericard.php'),
             ], ['config', 'azericard-config']);
+
+            $this->commands([GenerateKeysCommand::class]);
         }
     }
 
