@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Srustamov\Azericard\Exceptions;
 
 use Throwable;
@@ -7,11 +9,10 @@ use Throwable;
 class SignatureDoesNotMatchException extends AzericardException
 {
     public function __construct(
-        string     $message = "Signature does not match",
-        int        $code = 0,
-        ?Throwable $previous = null
-    )
-    {
+        string $message = 'Signature does not match',
+        int $code = 0,
+        ?Throwable $previous = null,
+    ) {
         parent::__construct($message, $code, $previous);
     }
 }

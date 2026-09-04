@@ -1,33 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
+use Srustamov\Azericard\Enums\Language;
 use Srustamov\Azericard\Options;
 use Srustamov\Azericard\SignatureGenerator;
 
 return [
-    //test mode
-    Options::DEBUG    => false,
+    // true => test gateway (testmpi.3dsecure.az)
+    Options::DEBUG => (bool) env('AZERICARD_DEBUG', false),
 
-    // Your bank terminal number
-    Options::TERMINAL => 17200000,
+    Options::TERMINAL => env('AZERICARD_TERMINAL'),
 
-    Options::MERCH_NAME => 'your_merchant_name',
-    Options::MERCH_GMT  => '+4',
-    Options::DESC       => 'Your company description',
-    Options::EMAIL      => 'payment@example.az',
-    Options::COUNTRY    => 'AZ',
-    Options::LANG       => 'AZ',
+    Options::MERCH_NAME => env('AZERICARD_MERCH_NAME', config('app.name')),
+    Options::MERCH_URL => env('AZERICARD_MERCH_URL', config('app.url')),
+    Options::MERCH_GMT => env('AZERICARD_MERCH_GMT', '+4'),
+    Options::DESC => env('AZERICARD_DESC', 'Online payment'),
+    Options::EMAIL => env('AZERICARD_EMAIL'),
+    Options::COUNTRY => env('AZERICARD_COUNTRY', 'AZ'),
+    Options::LANG => env('AZERICARD_LANG', Language::Az->value),
+    Options::CURRENCY => env('AZERICARD_CURRENCY', 'AZN'),
 
-    Options::CURRENCY => 'AZN',
+    // callback url the gateway redirects the customer back to
+    Options::BACKREF => env('AZERICARD_BACKREF'),
 
-    //your callback url
-    Options::BACKREF  => '',
+    Options::TIMEOUT => (int) env('AZERICARD_TIMEOUT', 10),
+    Options::RETRY_TIMES => (int) env('AZERICARD_RETRY_TIMES', 1),
+    Options::RETRY_SLEEP => (int) env('AZERICARD_RETRY_SLEEP', 200),
+
+    // never disable outside local debugging: this is a payment endpoint
+    Options::VERIFY_SSL => (bool) env('AZERICARD_VERIFY_SSL', true),
 
     'keys' => [
-        //it is required,
-        //for example, storage_path('secrets/private.pem')
-        SignatureGenerator::PRIVATE_KEY_NAME => 'private_key_file_path',
+        // absolute path or inline PEM contents
+        SignatureGenerator::PRIVATE_KEY_NAME => env('AZERICARD_PRIVATE_KEY'),
 
-        //if you do not want to verify signature then set null
-        SignatureGenerator::PUBLIC_KEY_NAME  => null,
+        // leave empty to SKIP callback signature verification (insecure)
+        SignatureGenerator::PUBLIC_KEY_NAME => env('AZERICARD_PUBLIC_KEY'),
     ],
 ];

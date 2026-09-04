@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Srustamov\Azericard\Exceptions;
 
-
-/**
- * Class FailedTransactionException
- * @package Srustamov\Azericard\Exceptions
- */
 class FailedTransactionException extends AzericardException
 {
+    public const UNKNOWN_MESSAGE = 'Unknown RC code';
+
+    /** @var array<int|string, string> */
     protected array $messages = [
         '-30' => 'System error',
         '-21' => 'Duplicate transaction',
@@ -94,22 +94,24 @@ class FailedTransactionException extends AzericardException
     ];
 
 
-    /**
-     * FailedTransactionException constructor.
-     * @param null $code
-     */
-    public function __construct($code = null, public array $params = [])
-    {
-        if (array_key_exists($code, $this->messages)) {
-            $message = $this->messages[$code];
-        } else {
-            $message = 'Unknown RC code: ' . $code;
-        }
+    protected ?string $rc;
 
-        parent::__construct($message);
+    /** @param array<string, mixed> $params */
+    public function __construct(string|int|null $code = null, public array $params = [])
+    {
+        $this->rc = $code === null ? null : (string) $code;
+
+        parent::__construct(
+            $this->messages[$this->rc] ?? self::UNKNOWN_MESSAGE . ': ' . ($this->rc ?? 'null')
+        );
     }
 
+    public function getResponseCode(): ?string
+    {
+        return $this->rc;
+    }
 
+    /** @return array<string, mixed> */
     public function getParams(): array
     {
         return $this->params;

@@ -1,20 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Srustamov\Azericard\Events;
 
 use Srustamov\Azericard\Azericard;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Foundation\Events\Dispatchable;
 
 class OrderCreating
 {
-    use Dispatchable, SerializesModels;
-
     public function __construct(
-        public string    $orderId,
-        public int|float $amount,
-        public Azericard &$azericard,
-    )
-    {
+        public readonly string $orderId,
+        public readonly int|float $amount,
+        public readonly Azericard $azericard,
+    ) {
     }
 }

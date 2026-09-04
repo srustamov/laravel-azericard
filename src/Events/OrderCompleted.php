@@ -1,19 +1,17 @@
 <?php
 
-namespace Srustamov\Azericard\Events;
+declare(strict_types=1);
 
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Foundation\Events\Dispatchable;
+namespace Srustamov\Azericard\Events;
 
 class OrderCompleted
 {
-    use Dispatchable, SerializesModels;
-
     public function __construct(
-        public array  $request,
-        public array  $data,
-        public string $response,
-    )
-    {
+        /** @var array<string, mixed> */
+        public readonly array $request,
+        /** @var array<string, mixed> */
+        public readonly array $data,
+        public readonly string $response,
+    ) {
     }
 }
